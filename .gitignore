@@ -1,0 +1,8 @@
+/target
+**/*.rs.bk
+tmp
+
+server/build/
+!server/build/.gitkeep
+
+node_modules
