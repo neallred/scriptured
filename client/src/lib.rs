@@ -257,13 +257,45 @@ pub fn check_parsing() {
 pub fn full_match_search(search_term: String) -> JsValue {
     
     let final_result = match get_scriptures() {
-        Ok(Scriptures {
-            ot,
-            nt,
-            bom,
-            dc,
-            pogp,
-        }) => vec![search_term],
+        Ok(Scriptures {ot, nt, bom, dc, pogp}) => {
+            let mut results: Vec<String> = vec![];
+
+            let mut ot_results: Vec<String> = ot.books.iter()
+                .flat_map(|book| &book.chapters)
+                .flat_map(|chapter| &chapter.verses)
+                .filter(|verse| verse.text.contains(&search_term))
+                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+
+            let mut nt_results: Vec<String> = nt.books.iter()
+                .flat_map(|book| &book.chapters)
+                .flat_map(|chapter| &chapter.verses)
+                .filter(|verse| verse.text.contains(&search_term))
+                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+
+            let mut bom_results: Vec<String> = bom.books.iter()
+                .flat_map(|book| &book.chapters)
+                .flat_map(|chapter| &chapter.verses)
+                .filter(|verse| verse.text.contains(&search_term))
+                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+
+            let mut dc_results: Vec<String> = dc.sections.iter()
+                .flat_map(|section| &section.verses)
+                .filter(|verse| verse.text.contains(&search_term))
+                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+
+            let mut pogp_results: Vec<String> = pogp.books.iter()
+                .flat_map(|book| &book.chapters)
+                .flat_map(|chapter| &chapter.verses)
+                .filter(|verse| verse.text.contains(&search_term))
+                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+
+            results.append(&mut ot_results);
+            results.append(&mut nt_results);
+            results.append(&mut bom_results);
+            results.append(&mut dc_results);
+            results.append(&mut pogp_results);
+            results
+        },
         Err(err) => vec![format!("Error getting scriptures {:?}", err)],
     };
 
