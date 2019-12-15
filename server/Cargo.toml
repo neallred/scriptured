@@ -3,6 +3,9 @@ name = "server"
 version = "0.1.0"
 authors = ["neallred <neallred@gmail.com>"]
 edition = "2018"
+repository = "https://github.com/neallred/verily"
+description = "High precision and recall scripture searchng for the web."
+license = "GPL-3.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

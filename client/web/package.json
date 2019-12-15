@@ -21,7 +21,7 @@
     "webpack"
   ],
   "author": "neallred",
-  "license": "(MIT OR Apache-2.0)",
+  "license": "GPL-3.0",
   "bugs": {
     "url": "https://github.com/neallred/verily"
   },
@@ -32,6 +32,8 @@
   "devDependencies": {
     "copy-webpack-plugin": "^5.1.1",
     "hello-wasm-pack": "^0.1.0",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.7.3",
     "webpack": "^4.29.3",
     "webpack-cli": "^3.1.0",
     "webpack-dev-server": "^3.1.5"

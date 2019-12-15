@@ -257,7 +257,13 @@ pub fn check_parsing() {
 pub fn full_match_search(search_term: String) -> JsValue {
     
     let final_result = match get_scriptures() {
-        Ok(_) => vec![search_term],
+        Ok(Scriptures {
+            ot,
+            nt,
+            bom,
+            dc,
+            pogp,
+        }) => vec![search_term],
         Err(err) => vec![format!("Error getting scriptures {:?}", err)],
     };
 
