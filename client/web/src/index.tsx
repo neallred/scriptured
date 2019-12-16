@@ -5,21 +5,10 @@ import * as wasm from "wasm-verily-client";
 
 import NoResult from './NoResult';
 import Result from './Result';
+import Preferences from './Preferences';
+import { debounce } from './utils';
 
 interface FormProps {
-}
-
-function debounce(func: Function, wait = 1000) {
-  let timeout: number = 0;
-  function debounced(...args: any[]) {
-    clearTimeout(timeout);
-    timeout = window.setTimeout(() => {
-      console.log('applying func with args:', args);
-      func.apply(this, args);
-    }, wait);
-  };
-  debounced.cancel = () => clearTimeout(timeout);
-  return debounced
 }
 
 const noResults: string[] = [];
@@ -40,16 +29,19 @@ function Form({}: FormProps) {
   setSearchTerm
   const boundSetSearchTerm = React.useCallback(e => setSearchTerm(e.target.value), []);
 
-  return <form>
-    <input placeholder="Enter a search" value={searchTerm} onChange={boundSetSearchTerm} />
-    {results.length
-      ? results.map(x => <Result key={x} displayString={x} />)
-      : <NoResult searchTerm={searchTerm} />
-    }
-    <div>
-      {}
-    </div>
-  </form>
+  return <div>
+    <form>
+      <input placeholder="Enter a search" value={searchTerm} onChange={boundSetSearchTerm} />
+      {results.length
+        ? results.map(x => <Result key={x} displayString={x} />)
+        : <NoResult searchTerm={searchTerm} />
+      }
+      <div>
+        {}
+      </div>
+    </form>
+    <Preferences />
+  </div>
 
 }
 
