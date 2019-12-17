@@ -5,6 +5,7 @@ extern crate serde_derive;
 extern crate serde_json;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use std::collections::HashSet;
 use std::error::Error;
 
 
@@ -52,6 +53,40 @@ pub const NPM: &'static str = "npm";
 #[wasm_bindgen]
 extern {
     fn alert(s: &str);
+}
+
+enum AndOr {
+    And = 1,
+    Or = 0,
+}
+
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+pub struct IncludedSources {
+    pub ot: bool,
+    pub nt: bool,
+    pub bom: bool,
+    pub dc: bool,
+    pub pogp: bool,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct IncludedBooks {
+    ot: Vec<String>,
+    nt: Vec<String>,
+    bom: Vec<String>,
+    // dc: Vec<String>,
+    pogp: Vec<String>,
+}
+
+// #[wasm_bindgen]
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SearchPreferences {
+  pub and: bool,
+  pub caseSensitive: bool,
+  pub exact: bool,
+  pub includedSources: IncludedSources,
+  pub includedBooks: IncludedBooks,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -254,7 +289,8 @@ pub fn check_parsing() {
 }
 
 #[wasm_bindgen]
-pub fn full_match_search(search_term: String) -> JsValue {
+pub fn full_match_search(search_term: String, search_preferences_js: JsValue) -> JsValue {
+    let search_preferences: SearchPreferences = search_preferences_js.into_serde().unwrap();
     
     let final_result = match get_scriptures() {
         Ok(Scriptures {ot, nt, bom, dc, pogp}) => {

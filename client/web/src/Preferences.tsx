@@ -100,7 +100,7 @@ const bookOrders = {
   ],
 }
 
-interface Preferences {
+export interface SearchPreferences {
   and: boolean;
   or: boolean;
   caseSensitive: boolean;
@@ -213,7 +213,7 @@ interface Preferences {
   }
 }
 
-const defaultPreferences: Preferences = {
+const defaultPreferences: SearchPreferences = {
   and: true,
   or: false,
   caseSensitive: true,
@@ -324,14 +324,15 @@ const defaultPreferences: Preferences = {
       "Articles of Faith": true,
     },
   },
-}
+};
 
 interface PreferencesProps {
-  preferences: Preferences
+  preferences: SearchPreferences;
+  setPreferences: (preferences: SearchPreferences) => void,
 }
 
-function loadPreferences(): Preferences {
-  const savedPreferences = JSON.parse(localStorage.getItem('verilyPreferences')) as Preferences;
+export function loadPreferences(): SearchPreferences {
+  const savedPreferences = JSON.parse(localStorage.getItem('verilyPreferences')) as SearchPreferences;
 
   if (savedPreferences) {
     return savedPreferences
@@ -340,7 +341,7 @@ function loadPreferences(): Preferences {
   }
 }
 
-function savePreferences(preferences: Preferences) {
+function savePreferences(preferences: SearchPreferences) {
   localStorage.setItem('verilyPreferences', JSON.stringify(preferences));
 }
 
@@ -349,33 +350,40 @@ const debouncedSavePreferences = debounce(savePreferences);
 type Bookronym = "ot" | "nt" | "bom" | "dc" | "pogp";
 
 interface BookSourceProps {
-  bookronym: Bookronym;
-  title: string;
-  includeSource: boolean;
   bookOrder?: string[];
+  bookronym: Bookronym;
   booksIncluded?: {[key: string]: boolean};
-  numberRange?: number[];
+  includeSource: boolean;
+  max?: number,
+  min?: number,
+  numberRange?: [number, number];
+  setAll: (bookronym: Bookronym, includeAll: boolean, min?: number, max?: number) => void,
   setPathValue: Function;
-  setAll: (bookronym: Bookronym, includeAll: boolean) => void,
+  title: string;
 }
 
 function BookSource({
-  bookronym,
-  title,
-  includeSource,
   bookOrder,
+  bookronym,
   booksIncluded,
+  includeSource,
+  max,
+  min,
   numberRange,
-  setPathValue,
   setAll,
+  setPathValue,
+  title,
 }: BookSourceProps) {
   const [open, setOpen] = React.useState(false);
-  const allIncluded = includeSource && bookOrder.every(x => booksIncluded[x]);
+  const allIncluded = includeSource && (
+    (bookOrder && bookOrder.every(x => booksIncluded[x])) ||
+    (numberRange && numberRange[0] === min && numberRange[1] === max)
+  );
   return <div>
     <div>{title}</div>
     <button onClick={() => setOpen(!open)}>{open ? "See less" : "See More"}</button>
     <button onClick={() => setPathValue(['includeSource', bookronym], !includeSource)}>{includeSource ? `Exclude ${title}` : `Include ${title}`}</button>
-    <button onClick={() => setAll(bookronym, !allIncluded)}>{allIncluded ? `Exclude all ${title} books` : `Include all ${title} books`}</button>
+    <button onClick={() => setAll(bookronym, !allIncluded, min, max)}>{allIncluded ? `Exclude all ${title} books` : `Include all ${title} books`}</button>
     {open && bookOrder && booksIncluded
         ?  bookOrder.map(x => {
           return <div>
@@ -418,8 +426,10 @@ function deepSet(path: string[], value: any, obj: any, merge: boolean = false): 
   };
 }
 
-export default function Preferences() {
-  const [preferences, setPreferences] = React.useState(loadPreferences());
+export default function Preferences({
+  preferences,
+  setPreferences,
+}: PreferencesProps) {
   React.useEffect(() => {
     debouncedSavePreferences(preferences);
   }, [preferences]);
@@ -428,13 +438,17 @@ export default function Preferences() {
     setPreferences(deepSet(['toSearch'].concat(path), value, preferences));
   }, [preferences]);
 
-  const setAll = React.useCallback((bookronym: Bookronym, allValue: boolean) => {
+  const setAll = React.useCallback((bookronym: Bookronym, allValue: boolean, min?: number, max?: number) => {
     const retVal: any = {};
     setPreferences({
       ...preferences,
       toSearch: {
         ...preferences.toSearch,
-        [bookronym]: Object.keys(preferences.toSearch[bookronym]).reduce((acc, curr) => { acc[curr] = allValue; return acc; }, retVal),
+        [bookronym]: (
+          bookronym === 'dc'
+          ? { range: [min, max] }
+          : Object.keys(preferences.toSearch[bookronym]).reduce((acc, curr) => { acc[curr] = allValue; return acc; }, retVal)
+        ),
         includeSource: {
           ...preferences.toSearch.includeSource,
           [bookronym]: allValue,
@@ -458,13 +472,50 @@ export default function Preferences() {
       includeSource={preferences.toSearch.includeSource.ot}
       bookOrder={bookOrders.ot}
       booksIncluded={preferences.toSearch.ot}
-      // numberRange: number[];
+      numberRange={undefined}
       setPathValue={setPathValue}
       setAll={setAll}
     />
-    Old Testament
-    New Testament
-    Book of Mormon
+    <BookSource
+      bookronym="nt"
+      title="New Testament"
+      includeSource={preferences.toSearch.includeSource.nt}
+      bookOrder={bookOrders.nt}
+      booksIncluded={preferences.toSearch.nt}
+      numberRange={undefined}
+      setPathValue={setPathValue}
+      setAll={setAll}
+    />
+    <BookSource
+      bookronym="bom"
+      title="Book of Mormon"
+      includeSource={preferences.toSearch.includeSource.bom}
+      bookOrder={bookOrders.bom}
+      booksIncluded={preferences.toSearch.bom}
+      numberRange={undefined}
+      setPathValue={setPathValue}
+      setAll={setAll}
+    />
+    <BookSource
+      bookronym="dc"
+      title="Doctrine and Covenants"
+      includeSource={preferences.toSearch.includeSource.dc}
+      numberRange={preferences.toSearch.dc.range}
+      min={1}
+      max={138}
+      setPathValue={setPathValue}
+      setAll={setAll}
+    />
+    <BookSource
+      bookronym="pogp"
+      title="Pearl of Great Price"
+      includeSource={preferences.toSearch.includeSource.pogp}
+      bookOrder={bookOrders.pogp}
+      booksIncluded={preferences.toSearch.pogp}
+      numberRange={undefined}
+      setPathValue={setPathValue}
+      setAll={setAll}
+    />
     Doctrine And Covenants
     Pearl of Great Price
 
