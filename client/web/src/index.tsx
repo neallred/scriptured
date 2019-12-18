@@ -13,17 +13,30 @@ import { debounce } from './utils';
 interface AppProps {
 }
 
+function reduceString(acc: string[], [k, v]: [string, boolean]): string[] {
+  if (v) {
+    acc.push(k);
+  }
+  return acc;
+}
+
 function jsPreferencesToWasmPreferences(jsPreferences: SearchPreferences): any {
+  const {
+    caseSensitive,
+    exact,
+    toSearch,
+  } = jsPreferences;
   return {
     and: jsPreferences.and,
-    caseSensitive: jsPreferences.caseSensitive,
-    exact: jsPreferences.exact,
-    includedSources: jsPreferences.toSearch.includeSource,
+    caseSensitive,
+    exact,
+    includedSources: toSearch.includeSource,
     includedBooks: {
-      ot: Object.entries(jsPreferences.toSearch.ot).reduce((acc, [k,v]) => { if (v) {acc.push(k); return acc; }}, []),
-      nt: Object.entries(jsPreferences.toSearch.nt).reduce((acc, [k,v]) => { if (v) {acc.push(k); return acc; }}, []),
-      bom: Object.entries(jsPreferences.toSearch.bom).reduce((acc, [k,v]) => { if (v) {acc.push(k); return acc; }}, []),
-      pogp: Object.entries(jsPreferences.toSearch.pogp).reduce((acc, [k,v]) => { if (v) {acc.push(k); return acc; }}, []),
+      ot: Object.entries(toSearch.ot).reduce(reduceString, []),
+      nt: Object.entries(toSearch.nt).reduce(reduceString, []),
+      bom: Object.entries(toSearch.bom).reduce(reduceString, []),
+      pogp: Object.entries(toSearch.pogp).reduce(reduceString, []),
+      dc: toSearch.dc.range
     },
   };
 }

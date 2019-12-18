@@ -3,6 +3,7 @@ mod utils;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
+
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use std::collections::HashSet;
@@ -72,10 +73,11 @@ pub struct IncludedSources {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct IncludedBooks {
+    // TODO: Represent these as `HashSet`s
     ot: Vec<String>,
     nt: Vec<String>,
     bom: Vec<String>,
-    // dc: Vec<String>,
+    dc: (u64, u64),
     pogp: Vec<String>,
 }
 
@@ -83,10 +85,13 @@ pub struct IncludedBooks {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchPreferences {
   pub and: bool,
-  pub caseSensitive: bool,
+  #[serde(rename = "caseSensitive")]
+  pub case_sensitive: bool,
   pub exact: bool,
-  pub includedSources: IncludedSources,
-  pub includedBooks: IncludedBooks,
+  #[serde(rename = "includedSources")]
+  pub included_sources: IncludedSources,
+  #[serde(rename = "includedBooks")]
+  pub included_books: IncludedBooks,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -288,48 +293,81 @@ pub fn check_parsing() {
     }
 }
 
+fn format_verse(v: &Verse) -> String {
+    format!("{}: {}", &v.reference, &v.text)
+}
+
+fn inclusive_contains(x: u64, bounds: (u64, u64)) -> bool {
+    x >= bounds.0 && x <= bounds.1
+}
+
 #[wasm_bindgen]
-pub fn full_match_search(search_term: String, search_preferences_js: JsValue) -> JsValue {
+pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue) -> JsValue {
     let search_preferences: SearchPreferences = search_preferences_js.into_serde().unwrap();
-    
+    let search_term = &search_term_raw.to_lowercase();
+    let case_sensitive_match = |verse: &&Verse| verse.text.contains(&search_term_raw);
+    let case_insensitive_match = |verse: &&Verse| verse.text.to_lowercase().contains(search_term);
+
+    let verse_search: Box<dyn Fn(&&Verse) -> bool> = if search_preferences.case_sensitive {
+        Box::new(case_sensitive_match)
+    } else {
+        Box::new(case_insensitive_match)
+    };
+
     let final_result = match get_scriptures() {
         Ok(Scriptures {ot, nt, bom, dc, pogp}) => {
             let mut results: Vec<String> = vec![];
 
-            let mut ot_results: Vec<String> = ot.books.iter()
-                .flat_map(|book| &book.chapters)
-                .flat_map(|chapter| &chapter.verses)
-                .filter(|verse| verse.text.contains(&search_term))
-                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+            if search_preferences.included_sources.ot {
+                let mut ot_results: Vec<String> = ot.books.iter()
+                    .filter(|book| search_preferences.included_books.ot.contains(&book.book))
+                    .flat_map(|book| &book.chapters)
+                    .flat_map(|chapter| &chapter.verses)
+                    .filter(&verse_search)
+                    .map(format_verse).collect();
 
-            let mut nt_results: Vec<String> = nt.books.iter()
-                .flat_map(|book| &book.chapters)
-                .flat_map(|chapter| &chapter.verses)
-                .filter(|verse| verse.text.contains(&search_term))
-                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+                results.append(&mut ot_results);
+            }
 
-            let mut bom_results: Vec<String> = bom.books.iter()
-                .flat_map(|book| &book.chapters)
-                .flat_map(|chapter| &chapter.verses)
-                .filter(|verse| verse.text.contains(&search_term))
-                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+            if search_preferences.included_sources.nt {
+                let mut nt_results: Vec<String> = nt.books.iter()
+                    .filter(|book| search_preferences.included_books.nt.contains(&book.book))
+                    .flat_map(|book| &book.chapters)
+                    .flat_map(|chapter| &chapter.verses)
+                    .filter(&verse_search)
+                    .map(format_verse).collect();
+                results.append(&mut nt_results);
+            }
 
-            let mut dc_results: Vec<String> = dc.sections.iter()
-                .flat_map(|section| &section.verses)
-                .filter(|verse| verse.text.contains(&search_term))
-                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+            if search_preferences.included_sources.bom {
+                let mut bom_results: Vec<String> = bom.books.iter()
+                    .filter(|book| search_preferences.included_books.bom.contains(&book.book))
+                    .flat_map(|book| &book.chapters)
+                    .flat_map(|chapter| &chapter.verses)
+                    .filter(&verse_search)
+                    .map(format_verse).collect();
+                results.append(&mut bom_results);
+            }
 
-            let mut pogp_results: Vec<String> = pogp.books.iter()
-                .flat_map(|book| &book.chapters)
-                .flat_map(|chapter| &chapter.verses)
-                .filter(|verse| verse.text.contains(&search_term))
-                .map(|verse| format!("{}: {}", &verse.reference, &verse.text)).collect();
+            if search_preferences.included_sources.dc {
+                let mut dc_results: Vec<String> = dc.sections.iter()
+                    .filter(|section| inclusive_contains(section.section, search_preferences.included_books.dc))
+                    .flat_map(|section| &section.verses)
+                    .filter(&verse_search)
+                    .map(format_verse).collect();
+                results.append(&mut dc_results);
+            }
 
-            results.append(&mut ot_results);
-            results.append(&mut nt_results);
-            results.append(&mut bom_results);
-            results.append(&mut dc_results);
-            results.append(&mut pogp_results);
+            if search_preferences.included_sources.pogp {
+                let mut pogp_results: Vec<String> = pogp.books.iter()
+                    .filter(|book| search_preferences.included_books.pogp.contains(&book.book))
+                    .flat_map(|book| &book.chapters)
+                    .flat_map(|chapter| &chapter.verses)
+                    .filter(&verse_search)
+                    .map(format_verse).collect();
+                results.append(&mut pogp_results);
+            }
+
             results
         },
         Err(err) => vec![format!("Error getting scriptures {:?}", err)],

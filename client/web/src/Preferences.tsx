@@ -213,6 +213,8 @@ export interface SearchPreferences {
   }
 }
 
+const FIRST_DC_SECTION = 1;
+const LAST_DC_SECTION = 138;
 const defaultPreferences: SearchPreferences = {
   and: true,
   or: false,
@@ -314,7 +316,7 @@ const defaultPreferences: SearchPreferences = {
       "Moroni": true,
     },
     dc: {
-      range: [1, 138],
+      range: [FIRST_DC_SECTION, LAST_DC_SECTION],
     },
     pogp: {
       "Moses": true,
@@ -375,10 +377,18 @@ function BookSource({
   title,
 }: BookSourceProps) {
   const [open, setOpen] = React.useState(false);
+  const [currentMin, currentMax] = numberRange || [FIRST_DC_SECTION, LAST_DC_SECTION];
   const allIncluded = includeSource && (
     (bookOrder && bookOrder.every(x => booksIncluded[x])) ||
     (numberRange && numberRange[0] === min && numberRange[1] === max)
   );
+  const setSlider = React.useCallback((e) => {
+    const updatingMin = e.target.id.endsWith('-min');
+    const updatedValue = parseInt(e.target.value);
+    const newMin = updatingMin ? updatedValue : Math.min(currentMin, updatedValue);
+    const newMax = updatingMin ? Math.max(currentMax, updatedValue) : updatedValue;
+    setPathValue(['dc', 'range'], [newMin, newMax])
+  }, [currentMin, currentMax, setPathValue]);
   return <div>
     <div>{title}</div>
     <button onClick={() => setOpen(!open)}>{open ? "See less" : "See More"}</button>
@@ -386,13 +396,12 @@ function BookSource({
     <button onClick={() => setAll(bookronym, !allIncluded, min, max)}>{allIncluded ? `Exclude all ${title} books` : `Include all ${title} books`}</button>
     {open && bookOrder && booksIncluded
         ?  bookOrder.map(x => {
-          return <div>
+          return <div key={x}>
             <label>
             <input
               type="checkbox"
               checked={booksIncluded[x]}
               onChange={e => setPathValue([bookronym, x], e.target.checked)}
-              key={x}
             />
             {x}
           </label>
@@ -403,15 +412,35 @@ function BookSource({
         : null
     }
     { numberRange
-        ? `${numberRange[0]} ${numberRange[1]}`
+        ?
+        <div>
+          <input
+            type="range"
+            id={`${bookronym}-min`}
+            min={min}
+            max={max}
+            step={1}
+            value={currentMin}
+            onChange={setSlider}
+          />
+          <input
+            type="range"
+            id={`${bookronym}-max`}
+            min={min}
+            max={max}
+            step={1}
+            value={currentMax}
+            onChange={setSlider}
+          />
+        </div>
         : null
     }
   </div>
 }
 
-function access(path: string[], value: any) {
-  return path.reduce((acc, curr) => acc[curr] , value);
-}
+// function access(path: string[], value: any) {
+//   return path.reduce((acc, curr) => acc[curr] , value);
+// }
 
 function deepSet(path: string[], value: any, obj: any, merge: boolean = false): any {
   const k = path[0];
@@ -501,8 +530,8 @@ export default function Preferences({
       title="Doctrine and Covenants"
       includeSource={preferences.toSearch.includeSource.dc}
       numberRange={preferences.toSearch.dc.range}
-      min={1}
-      max={138}
+      min={FIRST_DC_SECTION}
+      max={LAST_DC_SECTION}
       setPathValue={setPathValue}
       setAll={setAll}
     />
@@ -516,13 +545,5 @@ export default function Preferences({
       setPathValue={setPathValue}
       setAll={setAll}
     />
-    Doctrine And Covenants
-    Pearl of Great Price
-
-    Basic
-    By Book
-    preferences.
-    By Sub Books
-
   </div>
 }
