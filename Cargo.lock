@@ -145,6 +145,7 @@ name = "client"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "lazy_static",
  "serde",
  "serde_derive",
  "serde_json",
