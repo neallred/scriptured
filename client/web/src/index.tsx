@@ -46,32 +46,52 @@ const SHORTEST_SEARCH_LENGTH = 2;
 function App({}: AppProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [preferences, setPreferences] = React.useState(loadPreferences());
+  const [searchPending, setSearchPending] = React.useState(false);
   const [results, setResults] = React.useState<string[]>(noResults);
 
   const debouncedFullTextSearch = React.useCallback(debounce((currentSearchTerm: string, preferences: SearchPreferences) => {
-    const newResults = currentSearchTerm.length >= SHORTEST_SEARCH_LENGTH
+    const shouldSearch = currentSearchTerm.length >= SHORTEST_SEARCH_LENGTH;
+    const newResults = shouldSearch
       ? wasm.full_match_search(currentSearchTerm, jsPreferencesToWasmPreferences(preferences as any))
       : [];
     setResults(newResults);
+    setSearchPending(false);
   }), []);
 
-  React.useEffect(() => { debouncedFullTextSearch(
-    searchTerm,
-    preferences,
-  ) }, [searchTerm, preferences]);
-  const boundSetSearchTerm = React.useCallback(newTerm => setSearchTerm(newTerm), []);
+  React.useEffect(() => {
+    setSearchPending(true);
+    debouncedFullTextSearch(
+      searchTerm,
+      preferences,
+    );
+  }, [searchTerm, preferences]);
+  const boundSetSearchTerm = React.useCallback(
+    newTerm => {
+      setSearchPending(true);
+      setSearchTerm(newTerm);
+    },
+    []
+  );
 
-  return <div>
+  return <div style={{
+      padding: '8px',
+    }}>
     <Form
       searchTerm={searchTerm}
       setSearchTerm={boundSetSearchTerm}
       preferences={preferences}
       setPreferences={setPreferences}
     />
-    {results.length
-      ? results.map(x => <Result key={x} displayString={x} />)
-      : <NoResult searchTerm={searchTerm} />
-    }
+    <div className="results-section">
+      {results.length
+        ? results.map(x => <Result key={x} displayString={x} />)
+        : <NoResult
+          plausibleSearch={searchTerm.length >= SHORTEST_SEARCH_LENGTH}
+          searchPending={searchPending}
+          searchTerm={searchTerm}
+        />
+      }
+    </div>
   </div>
 
 }

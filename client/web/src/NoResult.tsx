@@ -1,14 +1,18 @@
 import * as React from 'react';
 
 interface NoResultProps {
-  searchTerm: string
+  plausibleSearch: boolean;
+  searchPending: boolean;
+  searchTerm: string;
 }
 export default function NoResult({
-  searchTerm
+  plausibleSearch,
+  searchPending,
+  searchTerm,
 }: NoResultProps) {
-  return searchTerm
+  return plausibleSearch && !searchPending
     ? <div>No results matched {searchTerm}. Try altering your search</div>
-    : <div>Enter a search</div>
+    : null
 }
 
 

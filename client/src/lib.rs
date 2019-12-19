@@ -9,19 +9,16 @@ extern crate lazy_static;
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use std::collections::HashSet;
-use std::collections::HashMap;
-use std::error::Error;
+// use std::collections::HashSet;
+// use std::error::Error;
 
-
-
-extern crate web_sys;
-use web_sys::console;
-macro_rules! log {
-    ( $( $t:tt )* ) => {
-        console::log_1(&format!( $( $t )* ).into());
-    }
-}
+// extern crate web_sys;
+// use web_sys::console;
+// macro_rules! log {
+//     ( $( $t:tt )* ) => {
+//         console::log_1(&format!( $( $t )* ).into());
+//     }
+// }
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -62,10 +59,10 @@ extern {
     fn alert(s: &str);
 }
 
-enum AndOr {
-    And = 1,
-    Or = 0,
-}
+// enum AndOr {
+//     And = 1,
+//     Or = 0,
+// }
 
 #[wasm_bindgen]
 #[derive(Serialize, Deserialize, Debug, Copy, Clone)]

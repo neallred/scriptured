@@ -1,7 +1,11 @@
 import * as React from 'react';
 import { debounce } from './utils';
-
-type SectionNumbers = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 | 57 | 58 | 59 | 60 | 61 | 62 | 63 | 64 | 65 | 66 | 67 | 68 | 69 | 70 | 71 | 72 | 73 | 74 | 75 | 76 | 77 | 78 | 79 | 80 | 81 | 82 | 83 | 84 | 85 | 86 | 87 | 88 | 89 | 90 | 91 | 92 | 93 | 94 | 95 | 96 | 97 | 98 | 99 | 100 | 101 | 102 | 103 | 104 | 105 | 106 | 107 | 108 | 109 | 110 | 111 | 112 | 113 | 114 | 115 | 116 | 117 | 118 | 119 | 120 | 121 | 122 | 123 | 124 | 125 | 126 | 127 | 128 | 129 | 130 | 131 | 132 | 133 | 134 | 135 | 136 | 137 | 138; 
+import BookPreferences, {
+  Bookronym,
+  FIRST_DC_SECTION,
+  LAST_DC_SECTION,
+  SectionNumbers,
+} from './BookPreferences';
 
 const bookOrders = {
   ot: [
@@ -100,237 +104,242 @@ const bookOrders = {
   ],
 }
 
+const defaultRange: [SectionNumbers, SectionNumbers] = [FIRST_DC_SECTION, LAST_DC_SECTION];
+
+export interface SearchMaterials {
+  includeSource: {
+    ot: boolean;
+    nt: boolean;
+    bom: boolean;
+    dc: boolean;
+    pogp: boolean;
+  }
+  ot: {
+    "Genesis": boolean;
+    "Exodus": boolean;
+    "Leviticus": boolean;
+    "Numbers": boolean;
+    "Deuteronomy": boolean;
+    "Joshua": boolean;
+    "Judges": boolean;
+    "Ruth": boolean;
+    "1 Samuel": boolean;
+    "2 Samuel": boolean;
+    "1 Kings": boolean;
+    "2 Kings": boolean;
+    "1 Chronicles": boolean;
+    "2 Chronicles": boolean;
+    "Ezra": boolean;
+    "Nehemiah": boolean;
+    "Esther": boolean;
+    "Job": boolean;
+    "Psalms": boolean;
+    "Proverbs": boolean;
+    "Ecclesiastes": boolean;
+    "Solomon's Song": boolean;
+    "Isaiah": boolean;
+    "Jeremiah": boolean;
+    "Lamentations": boolean;
+    "Ezekiel": boolean;
+    "Daniel": boolean;
+    "Hosea": boolean;
+    "Joel": boolean;
+    "Amos": boolean;
+    "Obadiah": boolean;
+    "Jonah": boolean;
+    "Micah": boolean;
+    "Nahum": boolean;
+    "Habakkuk": boolean;
+    "Zephaniah": boolean;
+    "Haggai": boolean;
+    "Zechariah": boolean;
+    "Malachi": boolean;
+  }
+  nt: {
+    "Matthew": boolean;
+    "Mark": boolean;
+    "Luke": boolean;
+    "John": boolean;
+    "Acts": boolean;
+    "Romans": boolean;
+    "1 Corinthians": boolean;
+    "2 Corinthians": boolean;
+    "Galatians": boolean;
+    "Ephesians": boolean;
+    "Philippians": boolean;
+    "Colossians": boolean;
+    "1 Thessalonians": boolean;
+    "2 Thessalonians": boolean;
+    "1 Timothy": boolean;
+    "2 Timothy": boolean;
+    "Titus": boolean;
+    "Philemon": boolean;
+    "Hebrews": boolean;
+    "James": boolean;
+    "1 Peter": boolean;
+    "2 Peter": boolean;
+    "1 John": boolean;
+    "2 John": boolean;
+    "3 John": boolean;
+    "Jude": boolean;
+    "Revelation": boolean;
+  }
+  bom: {
+    "1 Nephi": boolean;
+    "2 Nephi": boolean;
+    "Jacob": boolean;
+    "Enos": boolean;
+    "Jarom": boolean;
+    "Omni": boolean;
+    "Words of Mormon": boolean;
+    "Mosiah": boolean;
+    "Alma": boolean;
+    "Helaman": boolean;
+    "3 Nephi": boolean;
+    "4 Nephi": boolean;
+    "Mormon": boolean;
+    "Ether": boolean;
+    "Moroni": boolean;
+  }
+  dc: {
+    range: [SectionNumbers, SectionNumbers];
+  }
+  pogp: {
+    "Moses": boolean;
+    "Abraham": boolean;
+    "Joseph Smith—Matthew": boolean;
+    "Joseph Smith—History": boolean;
+    "Articles of Faith": boolean;
+  }
+};
+
 export interface SearchPreferences {
   and: boolean;
   or: boolean;
   caseSensitive: boolean;
-  exact: boolean
-  toSearch: {
-    includeSource: {
-      ot: boolean;
-      nt: boolean;
-      bom: boolean;
-      dc: boolean;
-      pogp: boolean;
-    }
-    ot: {
-      "Genesis": boolean;
-      "Exodus": boolean;
-      "Leviticus": boolean;
-      "Numbers": boolean;
-      "Deuteronomy": boolean;
-      "Joshua": boolean;
-      "Judges": boolean;
-      "Ruth": boolean;
-      "1 Samuel": boolean;
-      "2 Samuel": boolean;
-      "1 Kings": boolean;
-      "2 Kings": boolean;
-      "1 Chronicles": boolean;
-      "2 Chronicles": boolean;
-      "Ezra": boolean;
-      "Nehemiah": boolean;
-      "Esther": boolean;
-      "Job": boolean;
-      "Psalms": boolean;
-      "Proverbs": boolean;
-      "Ecclesiastes": boolean;
-      "Solomon's Song": boolean;
-      "Isaiah": boolean;
-      "Jeremiah": boolean;
-      "Lamentations": boolean;
-      "Ezekiel": boolean;
-      "Daniel": boolean;
-      "Hosea": boolean;
-      "Joel": boolean;
-      "Amos": boolean;
-      "Obadiah": boolean;
-      "Jonah": boolean;
-      "Micah": boolean;
-      "Nahum": boolean;
-      "Habakkuk": boolean;
-      "Zephaniah": boolean;
-      "Haggai": boolean;
-      "Zechariah": boolean;
-      "Malachi": boolean;
-    }
-    nt: {
-      "Matthew": boolean;
-      "Mark": boolean;
-      "Luke": boolean;
-      "John": boolean;
-      "Acts": boolean;
-      "Romans": boolean;
-      "1 Corinthians": boolean;
-      "2 Corinthians": boolean;
-      "Galatians": boolean;
-      "Ephesians": boolean;
-      "Philippians": boolean;
-      "Colossians": boolean;
-      "1 Thessalonians": boolean;
-      "2 Thessalonians": boolean;
-      "1 Timothy": boolean;
-      "2 Timothy": boolean;
-      "Titus": boolean;
-      "Philemon": boolean;
-      "Hebrews": boolean;
-      "James": boolean;
-      "1 Peter": boolean;
-      "2 Peter": boolean;
-      "1 John": boolean;
-      "2 John": boolean;
-      "3 John": boolean;
-      "Jude": boolean;
-      "Revelation": boolean;
-    }
-    bom: {
-      "1 Nephi": boolean;
-      "2 Nephi": boolean;
-      "Jacob": boolean;
-      "Enos": boolean;
-      "Jarom": boolean;
-      "Omni": boolean;
-      "Words of Mormon": boolean;
-      "Mosiah": boolean;
-      "Alma": boolean;
-      "Helaman": boolean;
-      "3 Nephi": boolean;
-      "4 Nephi": boolean;
-      "Mormon": boolean;
-      "Ether": boolean;
-      "Moroni": boolean;
-    }
-    dc: {
-      range: [SectionNumbers, SectionNumbers];
-    }
-    pogp: {
-      "Moses": boolean;
-      "Abraham": boolean;
-      "Joseph Smith—Matthew": boolean;
-      "Joseph Smith—History": boolean;
-      "Articles of Faith": boolean;
-    }
-  }
+  exact: boolean;
+  toSearch: SearchMaterials;
 }
 
-const FIRST_DC_SECTION = 1;
-const LAST_DC_SECTION = 138;
+const defaultSearchMaterial = {
+  includeSource: {
+    ot: true,
+    nt: true,
+    bom: true,
+    dc: true,
+    pogp: true,
+  },
+  ot: {
+    "Genesis": true,
+    "Exodus": true,
+    "Leviticus": true,
+    "Numbers": true,
+    "Deuteronomy": true,
+    "Joshua": true,
+    "Judges": true,
+    "Ruth": true,
+    "1 Samuel": true,
+    "2 Samuel": true,
+    "1 Kings": true,
+    "2 Kings": true,
+    "1 Chronicles": true,
+    "2 Chronicles": true,
+    "Ezra": true,
+    "Nehemiah": true,
+    "Esther": true,
+    "Job": true,
+    "Psalms": true,
+    "Proverbs": true,
+    "Ecclesiastes": true,
+    "Solomon's Song": true,
+    "Isaiah": true,
+    "Jeremiah": true,
+    "Lamentations": true,
+    "Ezekiel": true,
+    "Daniel": true,
+    "Hosea": true,
+    "Joel": true,
+    "Amos": true,
+    "Obadiah": true,
+    "Jonah": true,
+    "Micah": true,
+    "Nahum": true,
+    "Habakkuk": true,
+    "Zephaniah": true,
+    "Haggai": true,
+    "Zechariah": true,
+    "Malachi": true,
+  },
+  nt: {
+    "Matthew": true,
+    "Mark": true,
+    "Luke": true,
+    "John": true,
+    "Acts": true,
+    "Romans": true,
+    "1 Corinthians": true,
+    "2 Corinthians": true,
+    "Galatians": true,
+    "Ephesians": true,
+    "Philippians": true,
+    "Colossians": true,
+    "1 Thessalonians": true,
+    "2 Thessalonians": true,
+    "1 Timothy": true,
+    "2 Timothy": true,
+    "Titus": true,
+    "Philemon": true,
+    "Hebrews": true,
+    "James": true,
+    "1 Peter": true,
+    "2 Peter": true,
+    "1 John": true,
+    "2 John": true,
+    "3 John": true,
+    "Jude": true,
+    "Revelation": true,
+  },
+  bom: {
+    "1 Nephi": true,
+    "2 Nephi": true,
+    "Jacob": true,
+    "Enos": true,
+    "Jarom": true,
+    "Omni": true,
+    "Words of Mormon": true,
+    "Mosiah": true,
+    "Alma": true,
+    "Helaman": true,
+    "3 Nephi": true,
+    "4 Nephi": true,
+    "Mormon": true,
+    "Ether": true,
+    "Moroni": true,
+  },
+  dc: {
+    range: defaultRange,
+  },
+  pogp: {
+    "Moses": true,
+    "Abraham": true,
+    "Joseph Smith—Matthew": true,
+    "Joseph Smith—History": true,
+    "Articles of Faith": true,
+  },
+};
+
 const defaultPreferences: SearchPreferences = {
   and: true,
   or: false,
   caseSensitive: true,
   exact: true,
-  toSearch: {
-    includeSource: {
-      ot: true,
-      nt: true,
-      bom: true,
-      dc: true,
-      pogp: true,
-    },
-    ot: {
-      "Genesis": true,
-      "Exodus": true,
-      "Leviticus": true,
-      "Numbers": true,
-      "Deuteronomy": true,
-      "Joshua": true,
-      "Judges": true,
-      "Ruth": true,
-      "1 Samuel": true,
-      "2 Samuel": true,
-      "1 Kings": true,
-      "2 Kings": true,
-      "1 Chronicles": true,
-      "2 Chronicles": true,
-      "Ezra": true,
-      "Nehemiah": true,
-      "Esther": true,
-      "Job": true,
-      "Psalms": true,
-      "Proverbs": true,
-      "Ecclesiastes": true,
-      "Solomon's Song": true,
-      "Isaiah": true,
-      "Jeremiah": true,
-      "Lamentations": true,
-      "Ezekiel": true,
-      "Daniel": true,
-      "Hosea": true,
-      "Joel": true,
-      "Amos": true,
-      "Obadiah": true,
-      "Jonah": true,
-      "Micah": true,
-      "Nahum": true,
-      "Habakkuk": true,
-      "Zephaniah": true,
-      "Haggai": true,
-      "Zechariah": true,
-      "Malachi": true,
-    },
-    nt: {
-      "Matthew": true,
-      "Mark": true,
-      "Luke": true,
-      "John": true,
-      "Acts": true,
-      "Romans": true,
-      "1 Corinthians": true,
-      "2 Corinthians": true,
-      "Galatians": true,
-      "Ephesians": true,
-      "Philippians": true,
-      "Colossians": true,
-      "1 Thessalonians": true,
-      "2 Thessalonians": true,
-      "1 Timothy": true,
-      "2 Timothy": true,
-      "Titus": true,
-      "Philemon": true,
-      "Hebrews": true,
-      "James": true,
-      "1 Peter": true,
-      "2 Peter": true,
-      "1 John": true,
-      "2 John": true,
-      "3 John": true,
-      "Jude": true,
-      "Revelation": true,
-    },
-    bom: {
-      "1 Nephi": true,
-      "2 Nephi": true,
-      "Jacob": true,
-      "Enos": true,
-      "Jarom": true,
-      "Omni": true,
-      "Words of Mormon": true,
-      "Mosiah": true,
-      "Alma": true,
-      "Helaman": true,
-      "3 Nephi": true,
-      "4 Nephi": true,
-      "Mormon": true,
-      "Ether": true,
-      "Moroni": true,
-    },
-    dc: {
-      range: [FIRST_DC_SECTION, LAST_DC_SECTION],
-    },
-    pogp: {
-      "Moses": true,
-      "Abraham": true,
-      "Joseph Smith—Matthew": true,
-      "Joseph Smith—History": true,
-      "Articles of Faith": true,
-    },
-  },
+  toSearch: defaultSearchMaterial,
 };
 
 interface PreferencesProps {
   preferences: SearchPreferences;
-  setPreferences: (preferences: SearchPreferences) => void,
+  setPreferences: (preferences: SearchPreferences) => void;
+  hidePreferences: () => void;
 }
 
 export function loadPreferences(): SearchPreferences {
@@ -349,105 +358,12 @@ function savePreferences(preferences: SearchPreferences) {
 
 const debouncedSavePreferences = debounce(savePreferences);
 
-type Bookronym = "ot" | "nt" | "bom" | "dc" | "pogp";
-
-interface BookSourceProps {
-  bookOrder?: string[];
-  bookronym: Bookronym;
-  booksIncluded?: {[key: string]: boolean};
-  includeSource: boolean;
-  max?: number,
-  min?: number,
-  numberRange?: [number, number];
-  setAll: (bookronym: Bookronym, includeAll: boolean, min?: number, max?: number) => void,
-  setPathValue: Function;
-  title: string;
-}
-
-function BookSource({
-  bookOrder,
-  bookronym,
-  booksIncluded,
-  includeSource,
-  max,
-  min,
-  numberRange,
-  setAll,
-  setPathValue,
-  title,
-}: BookSourceProps) {
-  const [open, setOpen] = React.useState(false);
-  const [currentMin, currentMax] = numberRange || [FIRST_DC_SECTION, LAST_DC_SECTION];
-  const allIncluded = includeSource && (
-    (bookOrder && bookOrder.every(x => booksIncluded[x])) ||
-    (numberRange && numberRange[0] === min && numberRange[1] === max)
-  );
-  const setSlider = React.useCallback((e) => {
-    const updatingMin = e.target.id.endsWith('-min');
-    const updatedValue = parseInt(e.target.value);
-    const newMin = updatingMin ? updatedValue : Math.min(currentMin, updatedValue);
-    const newMax = updatingMin ? Math.max(currentMax, updatedValue) : updatedValue;
-    setPathValue(['dc', 'range'], [newMin, newMax])
-  }, [currentMin, currentMax, setPathValue]);
-  return <div>
-    <div>{title}</div>
-    <button onClick={() => setOpen(!open)}>{open ? "See less" : "See More"}</button>
-    <button onClick={() => setPathValue(['includeSource', bookronym], !includeSource)}>{includeSource ? `Exclude ${title}` : `Include ${title}`}</button>
-    <button onClick={() => setAll(bookronym, !allIncluded, min, max)}>{allIncluded ? `Exclude all ${title} books` : `Include all ${title} books`}</button>
-    {open && bookOrder && booksIncluded
-        ?  bookOrder.map(x => {
-          return <div key={x}>
-            <label>
-            <input
-              type="checkbox"
-              checked={booksIncluded[x]}
-              onChange={e => setPathValue([bookronym, x], e.target.checked)}
-            />
-            {x}
-          </label>
-
-
-          </div>
-        })
-        : null
-    }
-    { numberRange
-        ?
-        <div>
-          <input
-            type="range"
-            id={`${bookronym}-min`}
-            min={min}
-            max={max}
-            step={1}
-            value={currentMin}
-            onChange={setSlider}
-          />
-          <input
-            type="range"
-            id={`${bookronym}-max`}
-            min={min}
-            max={max}
-            step={1}
-            value={currentMax}
-            onChange={setSlider}
-          />
-        </div>
-        : null
-    }
-  </div>
-}
-
-// function access(path: string[], value: any) {
-//   return path.reduce((acc, curr) => acc[curr] , value);
-// }
-
 function deepSet(path: string[], value: any, obj: any, merge: boolean = false): any {
   const k = path[0];
   if (!k) {
     return obj;
   }
-  return { 
+  return {
     ...obj,
     [k]: (path.length === 1)
         ? (merge ? ({ ...obj[k], ...value }): value)
@@ -458,6 +374,7 @@ function deepSet(path: string[], value: any, obj: any, merge: boolean = false): 
 export default function Preferences({
   preferences,
   setPreferences,
+  hidePreferences,
 }: PreferencesProps) {
   React.useEffect(() => {
     debouncedSavePreferences(preferences);
@@ -485,65 +402,84 @@ export default function Preferences({
       },
     });
   }, [preferences]);
-  return <div>
-    Preferences
-    <div>
-      And search: <input type="checkbox" checked={preferences.and} onChange={e => setPreferences({...preferences, and: e.target.checked})} />
+  return <div
+    onClick={hidePreferences}
+    style={{
+      position: 'fixed',
+      top: '0',
+      bottom: '0',
+      left: '0',
+      right: '0',
+      backgroundColor: 'rgba(0,0,0,0.2)',
+      overflowY: 'auto',
+    }}
+  >
+    <div
+      onClick={e => e?.stopPropagation()}
+      style={{
+        width: '320px',
+        backgroundColor: 'white',
+        position: 'relative',
+        margin: '10px auto 0',
+        padding: '20px',
+      }}
+    >
+      <div>
+        And search: <input type="checkbox" checked={preferences.and} onChange={e => setPreferences({...preferences, and: e.target.checked})} />
+      </div>
+      <div>
+        Case sensitive search: <input type="checkbox" checked={preferences.caseSensitive} onChange={e => setPreferences({...preferences, caseSensitive: e.target.checked})} />
+      </div>
+      <BookPreferences
+        bookronym="ot"
+        title="Old Testament"
+        includeSource={preferences.toSearch.includeSource.ot}
+        bookOrder={bookOrders.ot}
+        booksIncluded={preferences.toSearch.ot}
+        numberRange={undefined}
+        setPathValue={setPathValue}
+        setAll={setAll}
+      />
+      <BookPreferences
+        bookronym="nt"
+        title="New Testament"
+        includeSource={preferences.toSearch.includeSource.nt}
+        bookOrder={bookOrders.nt}
+        booksIncluded={preferences.toSearch.nt}
+        numberRange={undefined}
+        setPathValue={setPathValue}
+        setAll={setAll}
+      />
+      <BookPreferences
+        bookronym="bom"
+        title="Book of Mormon"
+        includeSource={preferences.toSearch.includeSource.bom}
+        bookOrder={bookOrders.bom}
+        booksIncluded={preferences.toSearch.bom}
+        numberRange={undefined}
+        setPathValue={setPathValue}
+        setAll={setAll}
+      />
+      <BookPreferences
+        bookronym="dc"
+        title="Doctrine and Covenants"
+        includeSource={preferences.toSearch.includeSource.dc}
+        numberRange={preferences.toSearch.dc.range}
+        min={FIRST_DC_SECTION}
+        max={LAST_DC_SECTION}
+        setPathValue={setPathValue}
+        setAll={setAll}
+      />
+      <BookPreferences
+        bookronym="pogp"
+        title="Pearl of Great Price"
+        includeSource={preferences.toSearch.includeSource.pogp}
+        bookOrder={bookOrders.pogp}
+        booksIncluded={preferences.toSearch.pogp}
+        numberRange={undefined}
+        setPathValue={setPathValue}
+        setAll={setAll}
+      />
     </div>
-    <div>
-      Case sensitive search: <input type="checkbox" checked={preferences.caseSensitive} onChange={e => setPreferences({...preferences, caseSensitive: e.target.checked})} />
-    </div>
-
-    Books to include
-    <BookSource
-      bookronym="ot"
-      title="Old Testament"
-      includeSource={preferences.toSearch.includeSource.ot}
-      bookOrder={bookOrders.ot}
-      booksIncluded={preferences.toSearch.ot}
-      numberRange={undefined}
-      setPathValue={setPathValue}
-      setAll={setAll}
-    />
-    <BookSource
-      bookronym="nt"
-      title="New Testament"
-      includeSource={preferences.toSearch.includeSource.nt}
-      bookOrder={bookOrders.nt}
-      booksIncluded={preferences.toSearch.nt}
-      numberRange={undefined}
-      setPathValue={setPathValue}
-      setAll={setAll}
-    />
-    <BookSource
-      bookronym="bom"
-      title="Book of Mormon"
-      includeSource={preferences.toSearch.includeSource.bom}
-      bookOrder={bookOrders.bom}
-      booksIncluded={preferences.toSearch.bom}
-      numberRange={undefined}
-      setPathValue={setPathValue}
-      setAll={setAll}
-    />
-    <BookSource
-      bookronym="dc"
-      title="Doctrine and Covenants"
-      includeSource={preferences.toSearch.includeSource.dc}
-      numberRange={preferences.toSearch.dc.range}
-      min={FIRST_DC_SECTION}
-      max={LAST_DC_SECTION}
-      setPathValue={setPathValue}
-      setAll={setAll}
-    />
-    <BookSource
-      bookronym="pogp"
-      title="Pearl of Great Price"
-      includeSource={preferences.toSearch.includeSource.pogp}
-      bookOrder={bookOrders.pogp}
-      booksIncluded={preferences.toSearch.pogp}
-      numberRange={undefined}
-      setPathValue={setPathValue}
-      setAll={setAll}
-    />
   </div>
 }
