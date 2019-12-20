@@ -5,4 +5,7 @@ tmp
 server/build/
 !server/build/.gitkeep
 
+data-bundler/data/
+!data-bundler/data/.gitkeep
+
 node_modules
