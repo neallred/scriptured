@@ -41,6 +41,7 @@ function jsPreferencesToWasmPreferences(jsPreferences: SearchPreferences): any {
   };
 }
 
+let BOOTSTRAP_WAIT = 5000;
 const noResults: string[] = [];
 const SHORTEST_SEARCH_LENGTH = 2;
 function App({}: AppProps) {
@@ -48,8 +49,13 @@ function App({}: AppProps) {
   const [preferences, setPreferences] = React.useState(loadPreferences());
   const [searchPending, setSearchPending] = React.useState(false);
   const [results, setResults] = React.useState<string[]>(noResults);
+  const bootstrapTimeoutRef = React.useRef<number>(0);
 
   const debouncedFullTextSearch = React.useCallback(debounce((currentSearchTerm: string, preferences: SearchPreferences) => {
+    if (bootstrapTimeoutRef.current) {
+      ((window as any).cancelIdleCallback || window.clearTimeout)(bootstrapTimeoutRef.current);
+    }
+
     const shouldSearch = currentSearchTerm.length >= SHORTEST_SEARCH_LENGTH;
     const newResults = shouldSearch
       ? wasm.full_match_search(currentSearchTerm, jsPreferencesToWasmPreferences(preferences as any))
@@ -57,6 +63,13 @@ function App({}: AppProps) {
     setResults(newResults);
     setSearchPending(false);
   }), []);
+  React.useEffect(() => {
+    const timeoutMethod = ((window as any).requestIdleCallback || window.setTimeout);
+    bootstrapTimeoutRef.current = timeoutMethod(
+      () => wasm.bootstrap_searcher(),
+      (window as any).requestIdleCallback ? { timeout: BOOTSTRAP_WAIT } : BOOTSTRAP_WAIT,
+    )
+  }, []);
 
   React.useEffect(() => {
     setSearchPending(true);
@@ -65,6 +78,7 @@ function App({}: AppProps) {
       preferences,
     );
   }, [searchTerm, preferences]);
+
   const boundSetSearchTerm = React.useCallback(
     newTerm => {
       setSearchPending(true);

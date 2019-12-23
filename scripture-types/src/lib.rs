@@ -3,7 +3,6 @@ extern crate serde_derive;
 extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::prelude::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Verse {

@@ -5,6 +5,10 @@ use std::io::BufWriter;
 use std::io::Read;
 use std::path::Path;
 
+use std::io::prelude::*;
+use flate2::Compression;
+use flate2::write::GzEncoder;
+
 #[cfg(windows)]
 pub const NPM: &'static str = "npm.cmd";
 
@@ -13,9 +17,9 @@ pub const NPM: &'static str = "npm";
 
 fn ensure_data_source(test_path: &std::path::PathBuf) {
     if Path::new(&test_path).exists() {
-        println!("Data source exists, skipping install.");
+        println!("\nData source exists, skipping install.");
     } else {
-        println!("Data source not found, installing...");
+        println!("\nData source not found, installing...");
         std::process::Command::new("sh")
             .arg("-c")
             .arg(format!("{} i", NPM))
@@ -42,6 +46,7 @@ pub fn copy_minified<T: serde::de::DeserializeOwned + serde::ser::Serialize>(
     dest_folder: &std::path::PathBuf,
     file_name: &str,
 ) -> () {
+    println!("    {}", file_name);
     let mut src = src_folder.clone();
     src.push(file_name); 
 
@@ -49,9 +54,14 @@ pub fn copy_minified<T: serde::de::DeserializeOwned + serde::ser::Serialize>(
     let parsed: T = serde_json::from_str(&unparsed).unwrap();
 
     let mut dest = dest_folder.clone();
-    dest.push(file_name);
-    let mut f = BufWriter::new(File::create(dest).unwrap());
-    serde_json::to_writer(&mut f, &parsed).unwrap();
+    dest.push(format!("{}.{}", file_name, "gz"));
+
+    let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
+    serde_json::to_writer(&mut encoder, &parsed).unwrap();
+
+    let mut f_gzipped = BufWriter::new(File::create(dest).unwrap());
+    let gzipped = encoder.finish().unwrap();
+    f_gzipped.write(&gzipped).unwrap();
 }
 
 fn main() {
@@ -60,18 +70,18 @@ fn main() {
     project_root.pop();
     project_root.pop();
 
-    let mut data_dep_folder = project_root.clone();
-    data_dep_folder.push("node_modules");
-    data_dep_folder.push("@bencrowder");
-    data_dep_folder.push("scriptures-json");
+    let mut src_folder = project_root.clone();
+    src_folder.push("node_modules");
+    src_folder.push("@bencrowder");
+    src_folder.push("scriptures-json");
 
-    let mut test_path = data_dep_folder.clone();
+    let mut test_path = src_folder.clone();
     test_path.push("old-testament.json"); 
     ensure_data_source(&test_path);
 
-    let mut data_folder = project_root.clone();
-    data_folder.push("data-bundler");
-    data_folder.push("data");
+    let mut dest_folder = project_root.clone();
+    dest_folder.push("data-bundler");
+    dest_folder.push("data");
 
     // TODO: is there a way to have a list of concrete values and types,
     // and interate on each of them?
@@ -79,33 +89,35 @@ fn main() {
     // let sources = vec![
     //     ("old-testament.json", scripture_types::OldTestament),
     // ];
+    println!("Minifying:");
     copy_minified::<scripture_types::OldTestament>(
-        &data_dep_folder,
-        &data_folder,
+        &src_folder,
+        &dest_folder,
         "old-testament.json",
     );
 
     copy_minified::<scripture_types::NewTestament>(
-        &data_dep_folder,
-        &data_folder,
+        &src_folder,
+        &dest_folder,
         "new-testament.json",
     );
 
     copy_minified::<scripture_types::BookOfMormon>(
-        &data_dep_folder,
-        &data_folder,
+        &src_folder,
+        &dest_folder,
         "book-of-mormon.json",
     );
 
     copy_minified::<scripture_types::DoctrineAndCovenants>(
-        &data_dep_folder,
-        &data_folder,
+        &src_folder,
+        &dest_folder,
         "doctrine-and-covenants.json",
     );
 
     copy_minified::<scripture_types::PearlOfGreatPrice>(
-        &data_dep_folder,
-        &data_folder,
+        &src_folder,
+        &dest_folder,
         "pearl-of-great-price.json",
     );
+    println!("done!\n");
 }

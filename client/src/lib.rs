@@ -10,6 +10,8 @@ extern crate lazy_static;
 
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+use flate2::read::GzDecoder;
+use std::io::prelude::*;
 // use std::collections::HashSet;
 // use std::error::Error;
 
@@ -61,19 +63,19 @@ pub struct IncludedBooks {
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 
-static STR_BOOK_OF_MORMON: &'static str = include_str!("../../data-bundler/data/book-of-mormon.json");
-static STR_OLD_TESTAMENT: &'static str = include_str!("../../data-bundler/data/old-testament.json");
-static STR_NEW_TESTAMENT: &'static str = include_str!("../../data-bundler/data/new-testament.json");
-static STR_PEARL_OF_GREAT_PRICE: &'static str = include_str!("../../data-bundler/data/pearl-of-great-price.json");
-static STR_DOCTRINE_AND_COVENANTS: &'static str = include_str!("../../data-bundler/data/doctrine-and-covenants.json");
+static BYTES_OLD_TESTAMENT: &'static [u8] = include_bytes!("../../data-bundler/data/old-testament.json.gz");
+static BYTES_NEW_TESTAMENT: &'static [u8] = include_bytes!("../../data-bundler/data/new-testament.json.gz");
+static BYTES_BOOK_OF_MORMON: &'static [u8] = include_bytes!("../../data-bundler/data/book-of-mormon.json.gz");
+static BYTES_DOCTRINE_AND_COVENANTS: &'static [u8] = include_bytes!("../../data-bundler/data/doctrine-and-covenants.json.gz");
+static BYTES_PEARL_OF_GREAT_PRICE: &'static [u8] = include_bytes!("../../data-bundler/data/pearl-of-great-price.json.gz");
 
 // TODO: Figure out to do this one, at compile time.
 lazy_static! {
-    static ref BOOK_OF_MORMON: scripture_types::BookOfMormon = serde_json::from_str(&STR_BOOK_OF_MORMON).unwrap();
-    static ref OLD_TESTAMENT: scripture_types::OldTestament = serde_json::from_str(&STR_OLD_TESTAMENT).unwrap();
-    static ref NEW_TESTAMENT: scripture_types::NewTestament = serde_json::from_str(&STR_NEW_TESTAMENT).unwrap();
-    static ref PEARL_OF_GREAT_PRICE: scripture_types::PearlOfGreatPrice = serde_json::from_str(&STR_PEARL_OF_GREAT_PRICE).unwrap();
-    static ref DOCTRINE_AND_COVENANTS: scripture_types::DoctrineAndCovenants = serde_json::from_str(&STR_DOCTRINE_AND_COVENANTS).unwrap();
+    static ref BOOK_OF_MORMON: scripture_types::BookOfMormon = parse_gzip(&BYTES_BOOK_OF_MORMON);
+    static ref OLD_TESTAMENT: scripture_types::OldTestament = parse_gzip(&BYTES_OLD_TESTAMENT);
+    static ref NEW_TESTAMENT: scripture_types::NewTestament = parse_gzip(&BYTES_NEW_TESTAMENT);
+    static ref PEARL_OF_GREAT_PRICE: scripture_types::PearlOfGreatPrice = parse_gzip(&BYTES_PEARL_OF_GREAT_PRICE);
+    static ref DOCTRINE_AND_COVENANTS: scripture_types::DoctrineAndCovenants = parse_gzip(&BYTES_DOCTRINE_AND_COVENANTS);
 }
 
 
@@ -93,6 +95,47 @@ fn format_verse(v: &scripture_types::Verse) -> String {
 
 fn inclusive_contains(x: u64, bounds: (u64, u64)) -> bool {
     x >= bounds.0 && x <= bounds.1
+}
+
+pub fn parse_gzip<T: serde::de::DeserializeOwned + serde::ser::Serialize>(
+    gzipped: &[u8]
+) -> T {
+
+    let mut d = GzDecoder::new(gzipped);
+    let mut s = String::new();
+    d.read_to_string(&mut s).unwrap();
+
+    let data: T = serde_json::from_str(&s).unwrap();
+    data
+}
+
+#[wasm_bindgen]
+pub fn bootstrap_searcher() {
+    // Force the minimal amount of work to initialize all data structures
+    // so that user searches are speedy.
+    let empty_preferences = SearchPreferences {
+        and: false,
+        case_sensitive: true,
+        exact: false,
+        included_sources: IncludedSources {
+            ot: true,
+            nt: true,
+            bom: true,
+            dc: true,
+            pogp: true,
+        },
+        included_books: IncludedBooks {
+            ot: vec![],
+            nt: vec![],
+            bom: vec![],
+            dc: (1, 1),
+            pogp: vec![],
+        },
+    };
+    full_match_search(
+        String::from("BOOSTRAP SEARCHER BOOSTRAP SEARCHER BOOSTRAP SEARCHER"),
+        JsValue::from_serde(&empty_preferences).unwrap(),
+    );
 }
 
 #[wasm_bindgen]

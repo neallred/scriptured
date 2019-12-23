@@ -18,6 +18,7 @@ serde = { version = "1.0.103", features = ["derive"] }
 serde_json = "1.0.42"
 serde_derive = "1.0.103"  
 lazy_static = "1.4.0"
+flate2 = "1.0"
 
 scripture-types = { path = "../scripture-types" }
 
@@ -42,6 +43,8 @@ wasm-bindgen-test = "0.2"
 # so keep this here.
 # See https://github.com/rust-lang/rust/issues/56454 for a possible resolution.
 [profile.release]
+# link time optimizations
+lto = true
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
 

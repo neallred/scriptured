@@ -17,6 +17,10 @@ fn print_index(f: &std::fs::DirEntry) -> String {
 fn main() -> Result<(), Box<dyn Error>> {
     let out_dir = "../server/src";
     let dest_path = Path::new(&out_dir).join("main.rs");
+    {
+        std::fs::remove_file(&dest_path)?;
+    }
+
     let mut main_rs = File::create(&dest_path)?;
 
     let header = r##"#[macro_use]
