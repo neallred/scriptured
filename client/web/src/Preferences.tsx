@@ -331,7 +331,7 @@ const defaultSearchMaterial = {
 const defaultPreferences: SearchPreferences = {
   and: true,
   or: false,
-  caseSensitive: true,
+  caseSensitive: false,
   exact: true,
   toSearch: defaultSearchMaterial,
 };
@@ -342,11 +342,32 @@ interface PreferencesProps {
   hidePreferences: () => void;
 }
 
+function mergeConfigs<T>(a: T, b: {}, c: any = {}): T {
+  return Object.entries(a).reduce((acc, [k, v]) => {
+    if (
+      !Object.prototype.hasOwnProperty.call(b, k) ||
+      (typeof (a as any)[k] !== typeof (b as any)[k])
+    ) {
+      c[k] = (a as any)[k];
+    } else if (typeof v === 'object') {
+      c[k] = Object.prototype.hasOwnProperty.call(v, 'length')
+        ? (b as any)[k]
+        : mergeConfigs(v, (b as any)[k]);
+    } else {
+      // strings, booleans, numbers
+      c[k] = (b as any)[k];
+    }
+
+    return acc;
+  }, c) as T
+}
+
 export function loadPreferences(): SearchPreferences {
   const savedPreferences = JSON.parse(localStorage.getItem('verilyPreferences')) as SearchPreferences;
 
   if (savedPreferences) {
-    return savedPreferences
+    const mergedConfigs = mergeConfigs(defaultPreferences, savedPreferences);
+    return mergedConfigs
   } else {
     return defaultPreferences
   }
