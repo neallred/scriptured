@@ -44,7 +44,7 @@ describe('Preferences', () => {
     });
 
     it('does not add properties that are not in default preferences', () => {
-      mockGetItem({ I_DONT_EXIST: 'true' });
+      mockGetItem({ I_DONT_EXIST: true });
       const preferences = loadPreferences();
       expect((preferences as any).I_DONT_EXIST).toBe(undefined);
     });
