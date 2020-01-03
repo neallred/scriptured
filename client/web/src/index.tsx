@@ -96,7 +96,7 @@ function App({}: AppProps) {
       preferences={preferences}
       setPreferences={setPreferences}
     />
-    <div className="results-section">
+    <ul className="results-section">
       {results.length
         ? results.map(x => <Result key={x} displayString={x} />)
         : <NoResult
@@ -105,7 +105,7 @@ function App({}: AppProps) {
           searchTerm={searchTerm}
         />
       }
-    </div>
+    </ul>
   </div>
 
 }

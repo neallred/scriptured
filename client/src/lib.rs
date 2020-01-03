@@ -85,7 +85,7 @@ static BYTES_WORDS_INDEX: &'static [u8] =
     include_bytes!("../../data-bundler/data/words-index.json.gz");
 static BYTES_PATHS_INDEX: &'static [u8] =
     include_bytes!("../../data-bundler/data/paths-index.json.gz");
-static BASE_URL: &'static str = "https://www.lds.org/languages/eng/content/scriptures";
+static BASE_URL: &'static str = "https://www.churchofjesuschrist.org/study/scriptures";
 
 // TODO: Figure out to do this one, at compile time.
 lazy_static! {
@@ -124,13 +124,13 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
         VersePath::PathDC(s, v) => {
             let coll = &(&*DOCTRINE_AND_COVENANTS);
 
-            format!("{}/{}/{}.{}", coll.lds_slug, coll.lds_slug, s + 1, v + 1)
+            format!("{}/{}.{}", coll.lds_slug, s + 1, v + 1)
         }
         VersePath::PathPOGP(b, c, v) => {
             let coll = &(&*PEARL_OF_GREAT_PRICE);
 
             let book = &coll.books[*b];
-            format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
+            format!("{}/{}/{}.{}?lang=eng", coll.lds_slug, book.lds_slug, c + 1, v + 1)
         },
     };
     format!("{}/{}", BASE_URL, url_slug)
@@ -146,8 +146,45 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
 //    https://www.lds.org/languages/eng/content/scriptures
 //    https://www.lds.org/languages/eng/content/scriptures
 
-fn format_verse((p, v): (&scripture_types::VersePath, &scripture_types::Verse)) -> String {
-    format!("<span><a href=\"{}\">{}</a>: {}</span>", make_link(p), &v.reference, &v.text)
+fn highlight_matches(text: &String, search_term: &String) -> String {
+    search_term
+        .split_whitespace()
+        .fold(text.to_string(), |with_highlights, word| {
+            with_highlights.rmatch_indices(word)
+                .fold(with_highlights.to_string(),
+                    |mut acc, (idx, _match)| {
+                        acc.replace_range(idx .. idx + word.len(), &format!("<span class=\"match\">{}</span>", word));
+                        acc
+                    })
+
+            //} else {
+            //    with_highlights
+            //}
+
+            // if let Some(idx) = with_highlights.find(word) {
+            //     with_highlights.replace_range(idx .. idx + word.len(), &format!("<span class=\"match\">{}</span>", word));
+            //     with_highlights
+
+            // } else {
+            //     with_highlights
+            // }
+        })
+}
+
+//                    let mut s = String::from("α is alpha, β is beta");
+//                let beta_offset = s.find('β').unwrap_or(s.len());
+//
+//                // Replace the range up until the β from the string
+//                s.replace_range(..beta_offset, "Α is capital alpha; ");
+//                assert_eq!(s, "Α is capital alpha; β is beta");
+
+fn format_verse((p, v, search_term): (&scripture_types::VersePath, &scripture_types::Verse, &String)) -> String {
+    format!(
+        "<span><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"{}\">{}</a>: {}</span>",
+        make_link(p),
+        &v.reference,
+        highlight_matches(&v.text, search_term),
+    )
 }
 
 // fn inclusive_contains(x: u64, bounds: (u64, u64)) -> bool {
@@ -221,7 +258,7 @@ pub fn resolve_verse_path(
 #[wasm_bindgen]
 pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue) -> JsValue {
     let search_preferences: SearchPreferences = search_preferences_js.into_serde().unwrap();
-    let search_term = &search_term_raw.to_lowercase();
+    let search_term = &make_splittable(&search_term_raw.to_lowercase());
     // let case_sensitive_match =
     //     |verse: &&scripture_types::Verse| verse.text.contains(&search_term_raw);
     // let case_insensitive_match =
@@ -238,7 +275,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
     // TODO: Use this for "or" searches
     // let no_verses: HashSet<u32> = HashSet::new();
 
-    let index_results = make_splittable(search_term)
+    let index_results = search_term
         .split_whitespace()
         .fold(all_verses, |acc, word| {
             let stemmed_word = STEMMER.stem(word);
@@ -261,7 +298,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
     let verses: Vec<String> = index_results
         .iter()
         .map(|x| (&*PATHS_INDEX).get(x).unwrap())
-        .map(|x| (x, resolve_verse_path(x, &search_preferences)))
+        .map(|x| (x, resolve_verse_path(x, &search_preferences), search_term))
         .map(format_verse)
         .collect();
     JsValue::from_serde(&verses).unwrap()

@@ -7,6 +7,6 @@ interface ResultProps {
 export default function Result({
   displayString
 }: ResultProps) {
-  return <div dangerouslySetInnerHTML={{__html: displayString}} />
+  return <li dangerouslySetInnerHTML={{__html: displayString}} />
 }
 
