@@ -191,17 +191,22 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
     let all_verses: HashSet<u32> = (1..(&*PATHS_INDEX).len() as u32).collect();
     // TODO: Use this for "or" searches
     // let no_verses: HashSet<u32> = HashSet::new();
-    let stemmed_search = STEMMER.stem(search_term);
 
-    let index_results = make_splittable(&stemmed_search.to_string())
+    let index_results = make_splittable(search_term)
         .split_whitespace()
         .fold(all_verses, |acc, word| {
-            let index_results = match (&*WORDS_INDEX).get(word) {
+            let stemmed_word = STEMMER.stem(word);
+            // log!("searching: '{}' (stemmed as '{}')", word, stemmed_word);
+            let index_results = match (&*WORDS_INDEX).get(&stemmed_word.to_string()) {
                 Some(x) => {
-                    let in_both = acc.intersection(x).map(|&x| x).collect();
+                    // log!("acc: {:?}", acc.len());
+                    // log!("new: {:?}", x.len());
+                    let in_both: HashSet<_> = acc.intersection(x).map(|&x| x).collect();
+                    // log!("in_both: {:?}", in_both.len());
                     in_both
                 }
                 None => {
+                    // log!("not found: {}", word);
                     HashSet::new()
                 }
             };
