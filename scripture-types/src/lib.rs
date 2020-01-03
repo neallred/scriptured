@@ -137,6 +137,7 @@ pub struct OldTestament {
 pub struct PearlOfGreatPrice {
     pub books: Vec<Book>,
     pub last_modified: String,
+    pub lds_slug: String,
     pub subtitle: String,
     pub title: String,
     pub version: u64,

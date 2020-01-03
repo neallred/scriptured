@@ -85,6 +85,7 @@ static BYTES_WORDS_INDEX: &'static [u8] =
     include_bytes!("../../data-bundler/data/words-index.json.gz");
 static BYTES_PATHS_INDEX: &'static [u8] =
     include_bytes!("../../data-bundler/data/paths-index.json.gz");
+static BASE_URL: &'static str = "https://www.lds.org/languages/eng/content/scriptures";
 
 // TODO: Figure out to do this one, at compile time.
 lazy_static! {
@@ -100,8 +101,53 @@ lazy_static! {
     static ref RE_VERSE_CHARS: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
 }
 
-fn format_verse(v: &scripture_types::Verse) -> String {
-    format!("{}: {}", &v.reference, &v.text)
+fn make_link(verse_path: &scripture_types::VersePath) -> String {
+    let url_slug = match verse_path {
+        VersePath::PathOT(b, c, v) => {
+            let coll = &(&*OLD_TESTAMENT);
+
+            let book = &coll.books[*b];
+            format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
+        },
+        VersePath::PathNT(b, c, v) => {
+            let coll = &(&*NEW_TESTAMENT);
+
+            let book = &coll.books[*b];
+            format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
+        },
+        VersePath::PathBoM(b, c, v) => {
+            let coll = &(&*BOOK_OF_MORMON);
+
+            let book = &coll.books[*b];
+            format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
+        },
+        VersePath::PathDC(s, v) => {
+            let coll = &(&*DOCTRINE_AND_COVENANTS);
+
+            format!("{}/{}/{}.{}", coll.lds_slug, coll.lds_slug, s + 1, v + 1)
+        }
+        VersePath::PathPOGP(b, c, v) => {
+            let coll = &(&*PEARL_OF_GREAT_PRICE);
+
+            let book = &coll.books[*b];
+            format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
+        },
+    };
+    format!("{}/{}", BASE_URL, url_slug)
+}
+//    https://www.lds.org/languages/eng/content/scriptures/ot/deut/32.20
+//    https://www.lds.org/languages/eng/content/scriptures/nt/matt/8.26
+//    https://www.lds.org/languages/eng/content/scriptures/ot/hab/2.4
+//    https://www.lds.org/languages/eng/content/scriptures/nt/acts/11.24
+//    https://www.lds.org/languages/eng/content/scriptures/bofm/enos/1.14
+//    https://www.lds.org/languages/eng/content/scriptures/bofm/w-of-m/1.1
+//    https://www.lds.org/languages/eng/content/scriptures/dc-testament/dc-testament/dc/135.1
+//    https://www.lds.org/languages/eng/content/scriptures/pgp/js-h/1.67
+//    https://www.lds.org/languages/eng/content/scriptures
+//    https://www.lds.org/languages/eng/content/scriptures
+
+fn format_verse((p, v): (&scripture_types::VersePath, &scripture_types::Verse)) -> String {
+    format!("<span><a href=\"{}\">{}</a>: {}</span>", make_link(p), &v.reference, &v.text)
 }
 
 // fn inclusive_contains(x: u64, bounds: (u64, u64)) -> bool {
@@ -215,7 +261,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
     let verses: Vec<String> = index_results
         .iter()
         .map(|x| (&*PATHS_INDEX).get(x).unwrap())
-        .map(|x| resolve_verse_path(x, &search_preferences))
+        .map(|x| (x, resolve_verse_path(x, &search_preferences)))
         .map(format_verse)
         .collect();
     JsValue::from_serde(&verses).unwrap()
