@@ -1,11 +1,8 @@
 {
-  "name": "verily-client",
+  "name": "scriptured-client",
   "version": "0.1.0",
-  "description": "client for Verily scripture searcher",
+  "description": "client for Scriptured",
   "main": "index.js",
-  "bin": {
-    "create-wasm-app": ".bin/create-wasm-app.js"
-  },
   "scripts": {
     "build": "rm dist/* || true && NODE_ENV=production webpack --config webpack.config.js",
     "start": "webpack-dev-server",
@@ -24,13 +21,13 @@
   "author": "neallred",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/neallred/verily"
+    "url": "https://github.com/neallred/scriptured"
   },
-  "homepage": "https://github.com/neallred/verily#readme",
+  "homepage": "https://github.com/neallred/scriptured#readme",
   "dependencies": {
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "wasm-verily-client": "file:../pkg"
+    "wasm-scriptured-client": "file:../pkg"
   },
   "devDependencies": {
     "@types/jest": "^24.0.24",

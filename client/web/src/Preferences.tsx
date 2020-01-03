@@ -363,7 +363,7 @@ function mergeConfigs<T>(a: T, b: {}, c: any = {}): T {
 }
 
 export function loadPreferences(): SearchPreferences {
-  const savedPreferences = JSON.parse(localStorage.getItem('verilyPreferences')) as SearchPreferences;
+  const savedPreferences = JSON.parse(localStorage.getItem('scripturedPreferences')) as SearchPreferences;
 
   if (savedPreferences) {
     const mergedConfigs = mergeConfigs(defaultPreferences, savedPreferences);
@@ -374,7 +374,7 @@ export function loadPreferences(): SearchPreferences {
 }
 
 function savePreferences(preferences: SearchPreferences) {
-  localStorage.setItem('verilyPreferences', JSON.stringify(preferences));
+  localStorage.setItem('scripturedPreferences', JSON.stringify(preferences));
 }
 
 const debouncedSavePreferences = debounce(savePreferences);

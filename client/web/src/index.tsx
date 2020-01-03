@@ -1,7 +1,7 @@
 import * as ReactDOM from 'react-dom';
 import * as React from 'react';
 
-import * as wasm from "wasm-verily-client";
+import * as wasm from "wasm-scriptured-client";
 wasm.set_panic_hook();
 
 import NoResult from './NoResult';
@@ -110,4 +110,4 @@ function App({}: AppProps) {
 
 }
 
-ReactDOM.render(<App />, document.getElementById('verily-root'));
+ReactDOM.render(<App />, document.getElementById('scriptured-root'));
