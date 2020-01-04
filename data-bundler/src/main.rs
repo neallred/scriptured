@@ -8,10 +8,10 @@ use std::path::Path;
 
 use flate2::write::GzEncoder;
 use flate2::Compression;
-use regex::Regex;
+// use regex::Regex;
 use rust_stemmers::{Algorithm, Stemmer};
 use std::collections::HashMap;
-use std::collections::HashSet;
+// use std::collections::HashSet;
 use std::io::prelude::*;
 
 #[cfg(windows)]
@@ -19,7 +19,7 @@ pub const NPM: &'static str = "npm.cmd";
 
 #[cfg(not(windows))]
 pub const NPM: &'static str = "npm";
-
+// pub const word_chars: HashSet<char> = 'a'..'z'.collect();
 pub enum HasBooks<'a> {
     OT(&'a scripture_types::OldTestament),
     NT(&'a scripture_types::NewTestament),
@@ -62,6 +62,33 @@ fn prepare_book_paths<'a>(coll: HasBooks<'a>) -> Vec<(usize, usize, &'a scriptur
     with_chapters
 }
 
+// &str
+fn get_word_ranges(text: &String) -> Vec<(usize, usize)> {
+    // let word_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
+    let mut results: Vec<(usize, usize)> = vec![];
+    // let bob_2 = 'æ';
+    let mut open: Option<usize> = None;
+    text.char_indices().for_each(|(idx, letter): (usize, char)| {
+        let is_word_char = letter.is_alphanumeric() || letter == 'æ' || letter == '-';
+        if is_word_char {
+            if open == None {
+                open = Some(idx);
+            }
+        } else {
+            if let Some(open_idx) = open {
+                results.push((open_idx, idx));
+                open = None;
+            }
+        }
+    });
+
+    // println!("word ranges: {:?}\n text: {}", results, text);
+    results
+    // let trumm = text.rmatch_indices(word_chars);
+
+    // let re_verse_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
+}
+
 fn build_index(
     ot: scripture_types::OldTestament,
     nt: scripture_types::NewTestament,
@@ -71,37 +98,68 @@ fn build_index(
 ) -> (scripture_types::WordsIndex, scripture_types::PathsIndex) {
     let mut scripture_id: u32 = 0;
 
-    let re_verse_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
+    // let re_verse_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
     let en_stemmer = Stemmer::create(Algorithm::English);
-
-    let make_splittable = |text: &String| -> String {
-        let with_substitutions = text
-            .replace("–", " ")
-            .replace("—", " ")
-            .replace("—", " ")
-            .replace("'s", "")
-            .to_lowercase();
-        let splittable = re_verse_chars.replace_all(&with_substitutions, "");
-        splittable.to_string()
-    };
+    // let make_splittable = |text: &String| -> String {
+    //     let with_substitutions = text
+    //         .replace("–", " ")
+    //         .replace("—", " ")
+    //         .replace("—", " ")
+    //         .replace("'s", "")
+    //         .to_lowercase();
+    //     let splittable = re_verse_chars.replace_all(&with_substitutions, "");
+    //     splittable.to_string()
+    // };
 
     let indices: (scripture_types::WordsIndex, scripture_types::PathsIndex) =
         (HashMap::new(), HashMap::new());
 
-    let count_word_usage = |mut words_index: scripture_types::WordsIndex, word: &str, id| {
-        let stemmed = en_stemmer.stem(word);
+    // let count_word_usage = |mut words_index: scripture_types::WordsIndex, word: &str, id| {
+    //     let stemmed = en_stemmer.stem(word);
+
+    //     words_index.insert(
+    //         stemmed.to_string(),
+    //         match words_index.get(&stemmed.to_string()) {
+    //             Some(x) => {
+    //                 let mut verses_using_word = x.clone();
+    //                 verses_using_word.insert(id);
+    //                 verses_using_word
+    //             }
+    //             None => {
+    //                 let mut verses_using_word = HashSet::new();
+    //                 verses_using_word.insert(id);
+    //                 verses_using_word
+    //             }
+    //         },
+    //     );
+    //     words_index
+    // };
+
+    let count_word_usage = |mut words_index: scripture_types::WordsIndex, verse: &String, (i_from, i_to): &(usize, usize), id: u32| {
+        let word_slice = &verse[*i_from..*i_to].to_lowercase();
+        let stemmed = en_stemmer.stem(word_slice);
+        let mut to_insert = vec![(*i_from, *i_to)];
 
         words_index.insert(
             stemmed.to_string(),
             match words_index.get(&stemmed.to_string()) {
                 Some(x) => {
                     let mut verses_using_word = x.clone();
-                    verses_using_word.insert(id);
+                    match verses_using_word.get(&id) {
+                        Some(verse_usages) => {
+                            let mut merged_value = verse_usages.clone();
+                            merged_value.append(&mut to_insert);
+                            verses_using_word.insert(id, merged_value);
+                        }
+                        None => {
+                            verses_using_word.insert(id, to_insert);
+                        }
+                    }
                     verses_using_word
                 }
                 None => {
-                    let mut verses_using_word = HashSet::new();
-                    verses_using_word.insert(id);
+                    let mut verses_using_word = HashMap::new();
+                    verses_using_word.insert(id, to_insert);
                     verses_using_word
                 }
             },
@@ -110,9 +168,11 @@ fn build_index(
     };
 
     let count_verse = |verse_text: &String, words_index: scripture_types::WordsIndex, id| {
-        let index_with_verse_added = make_splittable(verse_text)
-            .split_whitespace()
-            .fold(words_index, |acc, word| count_word_usage(acc, word, id));
+        // println!("{:?}", get_word_ranges(verse_text));
+        // make_splittable(verse_text).split_whitespace()
+        let index_with_verse_added = get_word_ranges(verse_text)
+            .iter()
+            .fold(words_index, |acc, word_indices| count_word_usage(acc, verse_text, word_indices, id));
         index_with_verse_added
     };
 

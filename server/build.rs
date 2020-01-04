@@ -15,8 +15,9 @@ fn print_index(f: &std::fs::DirEntry) -> String {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let out_dir = "../server/src";
+    let out_dir = "./src";
     let dest_path = Path::new(&out_dir).join("main.rs");
+    println!("maybe removing main.rs?");
     {
         match std::fs::remove_file(&dest_path) {
             Ok(_) => {

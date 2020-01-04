@@ -4,9 +4,9 @@ extern crate serde_json;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::collections::HashSet;
+// use std::collections::HashSet;
 
-pub type WordsIndex = HashMap<String, HashSet<u32>>;
+pub type WordsIndex = HashMap<String, HashMap<u32, Vec<(usize, usize)>>>;
 pub type PathsIndex = HashMap<u32, VersePath>;
 
 #[derive(Serialize, Deserialize, Debug)]

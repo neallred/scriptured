@@ -135,16 +135,6 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
     };
     format!("{}/{}", BASE_URL, url_slug)
 }
-//    https://www.lds.org/languages/eng/content/scriptures/ot/deut/32.20
-//    https://www.lds.org/languages/eng/content/scriptures/nt/matt/8.26
-//    https://www.lds.org/languages/eng/content/scriptures/ot/hab/2.4
-//    https://www.lds.org/languages/eng/content/scriptures/nt/acts/11.24
-//    https://www.lds.org/languages/eng/content/scriptures/bofm/enos/1.14
-//    https://www.lds.org/languages/eng/content/scriptures/bofm/w-of-m/1.1
-//    https://www.lds.org/languages/eng/content/scriptures/dc-testament/dc-testament/dc/135.1
-//    https://www.lds.org/languages/eng/content/scriptures/pgp/js-h/1.67
-//    https://www.lds.org/languages/eng/content/scriptures
-//    https://www.lds.org/languages/eng/content/scriptures
 
 fn highlight_matches(text: &String, search_term: &String) -> String {
     search_term

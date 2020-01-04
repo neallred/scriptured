@@ -42,6 +42,7 @@ export default function Form({
         ref={inputRef}
         style={{
           flex: '1 1 auto',
+          maxWidth: 'calc(100% - 47px)',
         }}
       />
       <GearSvg onClick={showPreferences} style={{ marginLeft: '5px' }} />
