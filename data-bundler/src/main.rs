@@ -8,10 +8,9 @@ use std::path::Path;
 
 use flate2::write::GzEncoder;
 use flate2::Compression;
-// use regex::Regex;
 use rust_stemmers::{Algorithm, Stemmer};
 use std::collections::HashMap;
-// use std::collections::HashSet;
+use std::collections::hash_map::Entry;
 use std::io::prelude::*;
 
 #[cfg(windows)]
@@ -19,7 +18,6 @@ pub const NPM: &'static str = "npm.cmd";
 
 #[cfg(not(windows))]
 pub const NPM: &'static str = "npm";
-// pub const word_chars: HashSet<char> = 'a'..'z'.collect();
 pub enum HasBooks<'a> {
     OT(&'a scripture_types::OldTestament),
     NT(&'a scripture_types::NewTestament),
@@ -64,9 +62,7 @@ fn prepare_book_paths<'a>(coll: HasBooks<'a>) -> Vec<(usize, usize, &'a scriptur
 
 // &str
 fn get_word_ranges(text: &String) -> Vec<(usize, usize)> {
-    // let word_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
     let mut results: Vec<(usize, usize)> = vec![];
-    // let bob_2 = 'æ';
     let mut open: Option<usize> = None;
     text.char_indices().for_each(|(idx, letter): (usize, char)| {
         let is_word_char = letter.is_alphanumeric() || letter == 'æ' || letter == '-';
@@ -82,11 +78,7 @@ fn get_word_ranges(text: &String) -> Vec<(usize, usize)> {
         }
     });
 
-    // println!("word ranges: {:?}\n text: {}", results, text);
     results
-    // let trumm = text.rmatch_indices(word_chars);
-
-    // let re_verse_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
 }
 
 fn build_index(
@@ -98,78 +90,39 @@ fn build_index(
 ) -> (scripture_types::WordsIndex, scripture_types::PathsIndex) {
     let mut scripture_id: u32 = 0;
 
-    // let re_verse_chars: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
     let en_stemmer = Stemmer::create(Algorithm::English);
-    // let make_splittable = |text: &String| -> String {
-    //     let with_substitutions = text
-    //         .replace("–", " ")
-    //         .replace("—", " ")
-    //         .replace("—", " ")
-    //         .replace("'s", "")
-    //         .to_lowercase();
-    //     let splittable = re_verse_chars.replace_all(&with_substitutions, "");
-    //     splittable.to_string()
-    // };
 
     let indices: (scripture_types::WordsIndex, scripture_types::PathsIndex) =
         (HashMap::new(), HashMap::new());
 
-    // let count_word_usage = |mut words_index: scripture_types::WordsIndex, word: &str, id| {
-    //     let stemmed = en_stemmer.stem(word);
+    let count_word_usage = |mut words_index: scripture_types::WordsIndex, verse: &String, (i_from, i_to): &(usize, usize), scripture_id: u32| {
+        let f = *i_from;
+        let t = *i_to;
+        let word_slice = &verse[f..t].to_lowercase();
+        let stemmed = en_stemmer.stem(word_slice).to_string();
+        let to_insert = vec![(f, t)];
 
-    //     words_index.insert(
-    //         stemmed.to_string(),
-    //         match words_index.get(&stemmed.to_string()) {
-    //             Some(x) => {
-    //                 let mut verses_using_word = x.clone();
-    //                 verses_using_word.insert(id);
-    //                 verses_using_word
-    //             }
-    //             None => {
-    //                 let mut verses_using_word = HashSet::new();
-    //                 verses_using_word.insert(id);
-    //                 verses_using_word
-    //             }
-    //         },
-    //     );
-    //     words_index
-    // };
+        match words_index.entry(stemmed) {
+            Entry::Vacant(vacant) => {
+                let mut verses_using_word = HashMap::new();
+                verses_using_word.insert(scripture_id, to_insert);
+                // verses_using_word
 
-    let count_word_usage = |mut words_index: scripture_types::WordsIndex, verse: &String, (i_from, i_to): &(usize, usize), id: u32| {
-        let word_slice = &verse[*i_from..*i_to].to_lowercase();
-        let stemmed = en_stemmer.stem(word_slice);
-        let mut to_insert = vec![(*i_from, *i_to)];
-
-        words_index.insert(
-            stemmed.to_string(),
-            match words_index.get(&stemmed.to_string()) {
-                Some(x) => {
-                    let mut verses_using_word = x.clone();
-                    match verses_using_word.get(&id) {
-                        Some(verse_usages) => {
-                            let mut merged_value = verse_usages.clone();
-                            merged_value.append(&mut to_insert);
-                            verses_using_word.insert(id, merged_value);
-                        }
-                        None => {
-                            verses_using_word.insert(id, to_insert);
-                        }
-                    }
-                    verses_using_word
-                }
-                None => {
-                    let mut verses_using_word = HashMap::new();
-                    verses_using_word.insert(id, to_insert);
-                    verses_using_word
-                }
+                vacant.insert(verses_using_word);
             },
-        );
+            Entry::Occupied(mut verses_using_word) => {
+                let verses_using_word_val = verses_using_word.get_mut();
+                let verse_usage_entry = verses_using_word_val.entry(scripture_id);
+                verse_usage_entry
+                    .and_modify(|verse_usage| { verse_usage.push((f,t)) })
+                    .or_insert(to_insert);
+            },
+        };
+
         words_index
     };
 
     let count_verse = |verse_text: &String, words_index: scripture_types::WordsIndex, id| {
-        // println!("{:?}", get_word_ranges(verse_text));
-        // make_splittable(verse_text).split_whitespace()
         let index_with_verse_added = get_word_ranges(verse_text)
             .iter()
             .fold(words_index, |acc, word_indices| count_word_usage(acc, verse_text, word_indices, id));
@@ -421,6 +374,6 @@ fn main() {
     println!("Index building done!\n");
     println!("total word stems: {}", words_index.len());
     println!("total paths: {}", paths_index.len());
-    write_minified(&words_index, &dest_folder, "words-index.json");
     write_minified(&paths_index, &dest_folder, "paths-index.json");
+    write_minified(&words_index, &dest_folder, "words-index.json");
 }
