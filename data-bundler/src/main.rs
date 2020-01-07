@@ -60,7 +60,6 @@ fn prepare_book_paths<'a>(coll: HasBooks<'a>) -> Vec<(usize, usize, &'a scriptur
     with_chapters
 }
 
-// &str
 fn get_word_ranges(text: &String) -> Vec<(usize, usize)> {
     let mut results: Vec<(usize, usize)> = vec![];
     let mut open: Option<usize> = None;
@@ -227,7 +226,7 @@ fn build_index(
             scripture_id += 1;
             path_index.insert(
                 scripture_id,
-                scripture_types::VersePath::PathPOGP(*book_num, *chapter_num, verse.verse as usize),
+                scripture_types::VersePath::PathPOGP(*book_num, *chapter_num, verse.verse as usize - 1),
             );
             (
                 count_verse(&verse.text, words_index, scripture_id),
@@ -331,12 +330,6 @@ fn main() {
     dest_folder.push("data-bundler");
     dest_folder.push("data");
 
-    // TODO: is there a way to have a list of concrete values and types,
-    // and iterate on each of them?
-    // AFAIK, you can't mix term and type levels like that in Haskell.
-    // let sources = vec![
-    //     ("old-testament.json", scripture_types::OldTestament),
-    // ];
     println!("Minifying:");
     let ot = copy_minified::<scripture_types::OldTestament>(
         &src_folder,

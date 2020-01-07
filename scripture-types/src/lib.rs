@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub type WordsIndex = HashMap<String, HashMap<u32, Vec<(usize, usize)>>>;
 pub type PathsIndex = HashMap<u32, VersePath>;
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq)]
 pub enum VersePath {
     PathBoM(usize, usize, usize),
     PathOT(usize, usize, usize),
