@@ -339,10 +339,52 @@ pub fn resolve_verse_path(
 //     // JsValue::from_serde(&results).unwrap()
 // }
 
+fn check_search_empty(search: &String, preferences: &SearchPreferences) -> bool {
+    if search.is_empty() {
+        return false;
+    }
+
+    let included_sources = preferences.included_sources;
+    if 
+        !included_sources.ot &&
+        !included_sources.nt &&
+        !included_sources.bom &&
+        !included_sources.dc &&
+        !included_sources.pogp
+    {
+        return false;
+    }
+
+    let included_books = &preferences.included_books;
+
+    (
+        (included_sources.ot && !included_books.ot.is_empty()) ||
+        (included_sources.nt && !included_books.nt.is_empty()) ||
+        (included_sources.bom && !included_books.bom.is_empty()) ||
+        (included_sources.dc && included_books.dc.1 > included_books.dc.0) ||
+        (included_sources.pogp && !included_books.pogp.is_empty())
+    )
+}
+
+fn check_collection_searchable(verse_path: &VersePath, preferences: &SearchPreferences) -> bool {
+    match verse_path {
+        VersePath::PathOT(_, _, _) => preferences.included_sources.ot,
+        VersePath::PathNT(_, _, _) => preferences.included_sources.nt,
+        VersePath::PathBoM(_, _, _) => preferences.included_sources.bom,
+        VersePath::PathDC(_, _) => preferences.included_sources.dc,
+        VersePath::PathPOGP(_, _, _) => preferences.included_sources.pogp,
+    }
+}
+
 pub type WordsIndexBorrowing = HashMap<String, &'static HashMap<u32, Vec<(usize, usize)>>>;
 #[wasm_bindgen]
 pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue) -> JsValue {
     let search_preferences: SearchPreferences = search_preferences_js.into_serde().unwrap();
+    if check_search_empty(&search_term_raw, &search_preferences) {
+        let no_results: Vec<String> = vec![];
+        return JsValue::from_serde(&no_results).unwrap()
+    }
+
     let search_term = &make_splittable(&search_term_raw.to_lowercase());
 
     let search_stems: HashSet<_> = search_term.split_whitespace().map(|term| STEMMER.stem(term).to_string()).collect();
@@ -371,7 +413,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
     let p_index = &*PATHS_INDEX;
     let verses: Vec<String> = possible_matches
         .iter()
-        .flat_map(|(_k, v)| *v)
+        .flat_map(|(_k, v)| v.iter().filter(|x| and_matches.contains(x.0)))
         .map(|(scripture_id, highlights)| {
             let verse_path = p_index.get(scripture_id).unwrap();
             (verse_path, highlights)
