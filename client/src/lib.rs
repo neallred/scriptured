@@ -1,5 +1,3 @@
-mod utils;
-
 extern crate rust_stemmers;
 extern crate scripture_types;
 extern crate serde;
@@ -8,19 +6,21 @@ extern crate serde_json;
 use regex::Regex;
 use rust_stemmers::{Algorithm, Stemmer};
 
+mod utils;
+mod preferences;
+
 #[macro_use]
 extern crate lazy_static;
 
 use flate2::read::GzDecoder;
-use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
-use std::io::prelude::*;
-use wasm_bindgen::prelude::*;
-use std::collections::HashMap;
 use scripture_types::{
     BookOfMormon, DoctrineAndCovenants, NewTestament, OldTestament, PathsIndex, PearlOfGreatPrice,
     VersePath, WordsIndex,
 };
+use std::collections::HashMap;
+use std::collections::HashSet;
+use std::io::prelude::*;
+use wasm_bindgen::prelude::*;
 
 extern crate web_sys;
 use web_sys::console;
@@ -32,38 +32,6 @@ macro_rules! log {
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct SearchPreferences {
-    pub and: bool,
-    #[serde(rename = "caseSensitive")]
-    pub case_sensitive: bool,
-    pub exact: bool,
-    #[serde(rename = "includedSources")]
-    pub included_sources: IncludedSources,
-    #[serde(rename = "includedBooks")]
-    pub included_books: IncludedBooks,
-}
-
-#[wasm_bindgen]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct IncludedSources {
-    pub ot: bool,
-    pub nt: bool,
-    pub bom: bool,
-    pub dc: bool,
-    pub pogp: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct IncludedBooks {
-    // TODO: Represent these as `HashSet`s
-    pub ot: Vec<String>,
-    pub nt: Vec<String>,
-    pub bom: Vec<String>,
-    pub dc: (u64, u64),
-    pub pogp: Vec<String>,
-}
 
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
@@ -107,19 +75,19 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
 
             let book = &coll.books[*b];
             format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
-        },
+        }
         VersePath::PathNT(b, c, v) => {
             let coll = &(&*NEW_TESTAMENT);
 
             let book = &coll.books[*b];
             format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
-        },
+        }
         VersePath::PathBoM(b, c, v) => {
             let coll = &(&*BOOK_OF_MORMON);
 
             let book = &coll.books[*b];
             format!("{}/{}/{}.{}", coll.lds_slug, book.lds_slug, c + 1, v + 1)
-        },
+        }
         VersePath::PathDC(s, v) => {
             let coll = &(&*DOCTRINE_AND_COVENANTS);
 
@@ -129,8 +97,14 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
             let coll = &(&*PEARL_OF_GREAT_PRICE);
 
             let book = &coll.books[*b];
-            format!("{}/{}/{}.{}?lang=eng", coll.lds_slug, book.lds_slug, c + 1, v + 1)
-        },
+            format!(
+                "{}/{}/{}.{}?lang=eng",
+                coll.lds_slug,
+                book.lds_slug,
+                c + 1,
+                v + 1
+            )
+        }
     };
     format!("{}/{}", BASE_URL, url_slug)
 }
@@ -140,13 +114,20 @@ fn highlight_matches(text: &String, highlights: &Vec<(usize, usize)>) -> String 
         .iter()
         .rev()
         .fold(text.to_string(), |mut acc, (from, to)| {
-            let word_to_replace = &acc[*from .. *to];
-            acc.replace_range(from .. to, &format!("<span class=\"match\">{}</span>", word_to_replace));
+            let word_to_replace = &acc[*from..*to];
+            acc.replace_range(
+                from..to,
+                &format!("<span class=\"match\">{}</span>", word_to_replace),
+            );
             acc
         })
 }
 
-fn format_verse(p: &scripture_types::VersePath, v: &scripture_types::Verse, highlights: &Vec<(usize, usize)>) -> String {
+fn format_verse(
+    p: &scripture_types::VersePath,
+    v: &scripture_types::Verse,
+    highlights: &Vec<(usize, usize)>,
+) -> String {
     format!(
         "<span><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"{}\">{}</a>: {}</span>",
         make_link(p),
@@ -168,25 +149,7 @@ pub fn parse_gzip<T: serde::de::DeserializeOwned + serde::ser::Serialize>(gzippe
 pub fn bootstrap_searcher() {
     // Force the minimal amount of work to initialize all data structures
     // so that user searches are speedy.
-    let empty_preferences = SearchPreferences {
-        and: false,
-        case_sensitive: true,
-        exact: false,
-        included_sources: IncludedSources {
-            ot: true,
-            nt: true,
-            bom: true,
-            dc: true,
-            pogp: true,
-        },
-        included_books: IncludedBooks {
-            ot: vec![],
-            nt: vec![],
-            bom: vec![],
-            dc: (1, 1),
-            pogp: vec![],
-        },
-    };
+    let empty_preferences = preferences::make_empty_preferences();
     full_match_search(
         String::from("BOOSTRAP SCRIPTURED SEARCHER"),
         JsValue::from_serde(&empty_preferences).unwrap(),
@@ -208,7 +171,7 @@ fn make_splittable(text: &String) -> String {
 
 pub fn resolve_verse_path(
     path: &VersePath,
-    _preferences: &SearchPreferences,
+    _preferences: &preferences::SearchPreferences,
 ) -> &'static scripture_types::Verse {
     match path {
         VersePath::PathOT(b, c, v) => &(&*OLD_TESTAMENT).books[*b].chapters[*c].verses[*v],
@@ -227,18 +190,18 @@ pub fn resolve_verse_path(
 //     //     |verse: &&scripture_types::Verse| verse.text.contains(&search_term_raw);
 //     // let case_insensitive_match =
 //     //     |verse: &&scripture_types::Verse| verse.text.to_lowercase().contains(search_term);
-// 
+//
 //     // let verse_search: Box<dyn Fn(&&scripture_types::Verse) -> bool> =
 //     //     if search_preferences.case_sensitive {
 //     //         Box::new(case_sensitive_match)
 //     //     } else {
 //     //         Box::new(case_insensitive_match)
 //     //     };
-// 
+//
 //     let all_verses: HashSet<u32> = (1..(&*PATHS_INDEX).len() as u32).collect();
 //     // TODO: Use this for "or" searches
 //     // let no_verses: HashSet<u32> = HashSet::new();
-// 
+//
 //     let index_results = search_term
 //         .split_whitespace()
 //         .fold(all_verses, |acc, word| {
@@ -266,7 +229,7 @@ pub fn resolve_verse_path(
 //         .map(format_verse)
 //         .collect();
 //     JsValue::from_serde(&verses).unwrap()
-// 
+//
 //     // TODO: Use this code to further filter potential matches
 //     // let mut results: Vec<String> = vec![];
 //     // if search_preferences.included_sources.ot {
@@ -279,10 +242,10 @@ pub fn resolve_verse_path(
 //     //         .filter(&verse_search)
 //     //         .map(format_verse)
 //     //         .collect();
-// 
+//
 //     //     results.append(&mut ot_results);
 //     // }
-// 
+//
 //     // if search_preferences.included_sources.nt {
 //     //     let mut nt_results: Vec<String> = (&*NEW_TESTAMENT)
 //     //         .books
@@ -295,7 +258,7 @@ pub fn resolve_verse_path(
 //     //         .collect();
 //     //     results.append(&mut nt_results);
 //     // }
-// 
+//
 //     // if search_preferences.included_sources.bom {
 //     //     let mut bom_results: Vec<String> = (&*BOOK_OF_MORMON)
 //     //         .books
@@ -308,7 +271,7 @@ pub fn resolve_verse_path(
 //     //         .collect();
 //     //     results.append(&mut bom_results);
 //     // }
-// 
+//
 //     // if search_preferences.included_sources.dc {
 //     //     let mut dc_results: Vec<String> = (&*DOCTRINE_AND_COVENANTS)
 //     //         .sections
@@ -322,7 +285,7 @@ pub fn resolve_verse_path(
 //     //         .collect();
 //     //     results.append(&mut dc_results);
 //     // }
-// 
+//
 //     // if search_preferences.included_sources.pogp {
 //     //     let mut pogp_results: Vec<String> = (&*PEARL_OF_GREAT_PRICE)
 //     //         .books
@@ -335,82 +298,83 @@ pub fn resolve_verse_path(
 //     //         .collect();
 //     //     results.append(&mut pogp_results);
 //     // }
-// 
+//
 //     // JsValue::from_serde(&results).unwrap()
 // }
 
-fn check_search_empty(search: &String, preferences: &SearchPreferences) -> bool {
-    if search.is_empty() {
-        return false;
-    }
+fn check_collection_searchable(verse_path: &VersePath, preferences: &preferences::SearchPreferences) -> bool {
+    let return_value = match verse_path {
+        VersePath::PathOT(book, _, _) => (
+            preferences.included_sources.ot &&
+            preferences.included_books.ot.contains(&(&*OLD_TESTAMENT).books[*book].book)
+        ),
+        VersePath::PathNT(book, _, _) => (
+            preferences.included_sources.nt &&
+            preferences.included_books.nt.contains(&(&*NEW_TESTAMENT).books[*book].book)
+        ),
+        VersePath::PathBoM(book, _, _) => (
+            preferences.included_sources.bom &&
+            preferences.included_books.bom.contains(&(&*BOOK_OF_MORMON).books[*book].book)
+        ),
+        VersePath::PathDC(sec, _) => (
+            preferences.included_sources.dc &&
+            sec >= &(preferences.included_books.dc.0 as usize) &&
+            sec <= &(preferences.included_books.dc.1 as usize)
+        ),
+        VersePath::PathPOGP(book, _, _) => {
+            let title = &(&*PEARL_OF_GREAT_PRICE).books[*book].book;
+            (
+                preferences.included_sources.pogp &&
+                preferences.included_books.pogp.contains(title)
+            )
+        },
+    };
 
-    let included_sources = preferences.included_sources;
-    if 
-        !included_sources.ot &&
-        !included_sources.nt &&
-        !included_sources.bom &&
-        !included_sources.dc &&
-        !included_sources.pogp
-    {
-        return false;
-    }
-
-    let included_books = &preferences.included_books;
-
-    (
-        (included_sources.ot && !included_books.ot.is_empty()) ||
-        (included_sources.nt && !included_books.nt.is_empty()) ||
-        (included_sources.bom && !included_books.bom.is_empty()) ||
-        (included_sources.dc && included_books.dc.1 > included_books.dc.0) ||
-        (included_sources.pogp && !included_books.pogp.is_empty())
-    )
-}
-
-fn check_collection_searchable(verse_path: &VersePath, preferences: &SearchPreferences) -> bool {
-    match verse_path {
-        VersePath::PathOT(_, _, _) => preferences.included_sources.ot,
-        VersePath::PathNT(_, _, _) => preferences.included_sources.nt,
-        VersePath::PathBoM(_, _, _) => preferences.included_sources.bom,
-        VersePath::PathDC(_, _) => preferences.included_sources.dc,
-        VersePath::PathPOGP(_, _, _) => preferences.included_sources.pogp,
-    }
+    log!("verse_path {:?}: {:?}", verse_path, return_value);
+    return_value
 }
 
 pub type WordsIndexBorrowing = HashMap<String, &'static HashMap<u32, Vec<(usize, usize)>>>;
 #[wasm_bindgen]
 pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue) -> JsValue {
-    let search_preferences: SearchPreferences = search_preferences_js.into_serde().unwrap();
-    if check_search_empty(&search_term_raw, &search_preferences) {
+    let search_preferences: preferences::SearchPreferences = search_preferences_js.into_serde().unwrap();
+    if !preferences::check_can_search(&search_term_raw, &search_preferences) {
         let no_results: Vec<String> = vec![];
-        return JsValue::from_serde(&no_results).unwrap()
+        return JsValue::from_serde(&no_results).unwrap();
     }
 
     let search_term = &make_splittable(&search_term_raw.to_lowercase());
 
-    let search_stems: HashSet<_> = search_term.split_whitespace().map(|term| STEMMER.stem(term).to_string()).collect();
-    let possible_matches: WordsIndexBorrowing = search_stems.iter()
-        .fold(
-            HashMap::new(),
-            |mut matching_index, term| {
+    let search_stems: HashSet<_> = search_term
+        .split_whitespace()
+        .map(|term| STEMMER.stem(term).to_string())
+        .collect();
+    let possible_matches: WordsIndexBorrowing =
+        search_stems
+            .iter()
+            .fold(HashMap::new(), |mut matching_index, term| {
                 if let Some(v) = (&*WORDS_INDEX).get(term) {
                     matching_index.insert(term.to_string(), v);
                 }
                 matching_index
-            }
-        );
-
-    let or_matches: HashSet<u32> = possible_matches.iter()
-        .flat_map(|(_k, v)| v.keys()).map(|x| *x).collect();
-
-    let and_matches: HashSet<u32> = possible_matches.iter()
-        .fold(or_matches, |acc, (_k, v)| {
-            let current_matches: HashSet<u32> = v.keys().map(|x| *x).collect();
-            let result: HashSet<u32> = acc.intersection(&current_matches).map(|x| *x).collect();
-            result
-        });
-
+            });
 
     let p_index = &*PATHS_INDEX;
+
+    log!("search preferences:\n{:?}", search_preferences);
+    let or_matches: HashSet<u32> = possible_matches
+        .iter()
+        .flat_map(|(_k, v)| v.keys())
+        .map(|x| *x)
+        .filter(|x| check_collection_searchable(p_index.get(x).unwrap(), &search_preferences))
+        .collect();
+
+    let and_matches: HashSet<u32> = possible_matches.iter().fold(or_matches, |acc, (_k, v)| {
+        let current_matches: HashSet<u32> = v.keys().map(|x| *x).collect();
+        let result: HashSet<u32> = acc.intersection(&current_matches).map(|x| *x).collect();
+        result
+    });
+
     let verses: Vec<String> = possible_matches
         .iter()
         .flat_map(|(_k, v)| v.iter().filter(|x| and_matches.contains(x.0)))
@@ -427,15 +391,16 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
                         existing_highlights.append(&mut cloned);
                         existing_highlights.sort();
                     })
-                .or_insert(cloned);
+                    .or_insert(cloned);
                 acc
-            }
+            },
         )
         .iter()
         .map(|(verse_path, highlights)| {
-            let verse= resolve_verse_path(verse_path, &search_preferences);
+            let verse = resolve_verse_path(verse_path, &search_preferences);
             format_verse(verse_path, verse, highlights)
-        }).collect();
+        })
+        .collect();
 
     JsValue::from_serde(&verses).unwrap()
 }
