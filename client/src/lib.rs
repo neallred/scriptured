@@ -14,7 +14,7 @@ extern crate lazy_static;
 
 use flate2::read::GzDecoder;
 use scripture_types::{
-    BookOfMormon, DoctrineAndCovenants, NewTestament, OldTestament, PathsIndex, PearlOfGreatPrice,
+    BookOfMormon, DoctrineAndCovenants, NewTestament, OldTestament, PathsIndex, VersePathsIndex, PearlOfGreatPrice,
     VersePath, WordsIndex,
 };
 use std::collections::HashMap;
@@ -64,6 +64,7 @@ lazy_static! {
         parse_gzip(&BYTES_DOCTRINE_AND_COVENANTS);
     static ref WORDS_INDEX: WordsIndex = parse_gzip(&BYTES_WORDS_INDEX);
     static ref PATHS_INDEX: PathsIndex = parse_gzip(&BYTES_PATHS_INDEX);
+    static ref VERSE_PATHS_INDEX: VersePathsIndex = scripture_types::paths_to_verse_paths_index(&*PATHS_INDEX);
     static ref STEMMER: rust_stemmers::Stemmer = Stemmer::create(Algorithm::English);
     static ref RE_VERSE_CHARS: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
 }
@@ -330,7 +331,6 @@ fn check_collection_searchable(verse_path: &VersePath, preferences: &preferences
         },
     };
 
-    log!("verse_path {:?}: {:?}", verse_path, return_value);
     return_value
 }
 
@@ -360,8 +360,8 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
             });
 
     let p_index = &*PATHS_INDEX;
+    let verse_paths_index = &*VERSE_PATHS_INDEX;
 
-    log!("search preferences:\n{:?}", search_preferences);
     let or_matches: HashSet<u32> = possible_matches
         .iter()
         .flat_map(|(_k, v)| v.keys())
@@ -375,7 +375,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
         result
     });
 
-    let verses: Vec<String> = possible_matches
+    let mut verses: Vec<(u32, String)> = possible_matches
         .iter()
         .flat_map(|(_k, v)| v.iter().filter(|x| and_matches.contains(x.0)))
         .map(|(scripture_id, highlights)| {
@@ -398,9 +398,10 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
         .iter()
         .map(|(verse_path, highlights)| {
             let verse = resolve_verse_path(verse_path, &search_preferences);
-            format_verse(verse_path, verse, highlights)
+            (verse_paths_index[&verse_path], format_verse(verse_path, verse, highlights))
         })
         .collect();
-
-    JsValue::from_serde(&verses).unwrap()
+    verses.sort_unstable_by(|a, b| a.cmp(b));
+    let sorted_verses: Vec<&String> = verses.iter().map(|(_, text)| text).collect();
+    JsValue::from_serde(&sorted_verses).unwrap()
 }

@@ -8,8 +8,21 @@ use std::collections::HashMap;
 
 pub type WordsIndex = HashMap<String, HashMap<u32, Vec<(usize, usize)>>>;
 pub type PathsIndex = HashMap<u32, VersePath>;
+pub type VersePathsIndex = HashMap<VersePath, u32>;
 
-#[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq)]
+pub fn paths_to_verse_paths_index(paths: &PathsIndex) -> VersePathsIndex {
+    paths
+        .iter()
+        .fold(
+            HashMap::new(),
+            |mut acc, (k, v)| {
+                acc.insert(v.clone(), *k);
+                acc
+            }
+        )
+}
+
+#[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq, Clone)]
 pub enum VersePath {
     PathBoM(usize, usize, usize),
     PathOT(usize, usize, usize),
