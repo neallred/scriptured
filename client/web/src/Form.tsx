@@ -8,6 +8,7 @@ interface FormProps {
   setSearchTerm: (searchTerm: string) => void;
   preferences: SearchPreferences;
   setPreferences: (preferences: SearchPreferences) => void;
+  resultCount: null | number,
 };
 
 export default function Form({
@@ -15,6 +16,7 @@ export default function Form({
   setSearchTerm,
   preferences,
   setPreferences,
+  resultCount,
 }: FormProps) {
   const [preferencesOpen, setPreferencesOpen] = React.useState(false);
   const showPreferences = React.useCallback(() => setPreferencesOpen(true), []);
@@ -54,5 +56,6 @@ export default function Form({
         hidePreferences={hidePreferences}
       />
     }
+    { typeof resultCount === 'number' && <span>{resultCount} results</span> }
   </div>
 }

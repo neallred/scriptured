@@ -41,6 +41,27 @@ function jsPreferencesToWasmPreferences(jsPreferences: SearchPreferences): any {
   };
 }
 
+//       {results.length
+//         ? results.map(x => <Result key={x} displayString={x} />)
+//         : <NoResult
+//           plausibleSearch={searchTerm.length >= SHORTEST_SEARCH_LENGTH}
+//           searchPending={searchPending}
+//           searchTerm={searchTerm}
+//         />
+//       }
+//     </ul>
+const _elementCache: {[key: string]: HTMLElement | null} = {};
+function cachedGetElementById(id: string) { 
+  const hit = _elementCache[id];
+  if (hit) {
+    return hit;
+  }
+  _elementCache[id] = document.getElementById(id);
+  return _elementCache[id];
+}
+
+const resultList = document.getElementById('scriptured-results');
+
 let BOOTSTRAP_WAIT = 5000;
 const noResults: string[] = [];
 const SHORTEST_SEARCH_LENGTH = 2;
@@ -48,7 +69,7 @@ function App({}: AppProps) {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [preferences, setPreferences] = React.useState(loadPreferences());
   const [searchPending, setSearchPending] = React.useState(false);
-  const [results, setResults] = React.useState<string[]>(noResults);
+  const [resultCount, setResultCount] = React.useState<null | number>(null);
   const bootstrapTimeoutRef = React.useRef<number>(0);
 
   const debouncedFullTextSearch = React.useCallback(debounce((currentSearchTerm: string, preferences: SearchPreferences) => {
@@ -60,9 +81,12 @@ function App({}: AppProps) {
     const newResults = shouldSearch
       ? wasm.full_match_search(currentSearchTerm, jsPreferencesToWasmPreferences(preferences as any))
       : [];
-    setResults(newResults);
+    setResultCount(shouldSearch ? newResults.length : null);
     setSearchPending(false);
-  }), []);
+
+    cachedGetElementById('scriptured-results').innerHTML = newResults.join('');
+
+  }, 350), []);
   React.useEffect(() => {
     const timeoutMethod = ((window as any).requestIdleCallback || window.setTimeout);
     bootstrapTimeoutRef.current = timeoutMethod(
@@ -95,17 +119,9 @@ function App({}: AppProps) {
       setSearchTerm={boundSetSearchTerm}
       preferences={preferences}
       setPreferences={setPreferences}
+      resultCount={resultCount}
     />
-    <ul className="results-section">
-      {results.length
-        ? results.map(x => <Result key={x} displayString={x} />)
-        : <NoResult
-          plausibleSearch={searchTerm.length >= SHORTEST_SEARCH_LENGTH}
-          searchPending={searchPending}
-          searchTerm={searchTerm}
-        />
-      }
-    </ul>
+    <ul id="scriptured-results" className="results-section" />
   </div>
 
 }

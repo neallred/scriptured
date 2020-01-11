@@ -130,7 +130,7 @@ fn format_verse(
     highlights: &Vec<(usize, usize)>,
 ) -> String {
     format!(
-        "<span><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"{}\">{}</a>: {}</span>",
+        "<li><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"{}\">{}</a>: {}</li>",
         make_link(p),
         &v.reference,
         highlight_matches(&v.text, highlights),
