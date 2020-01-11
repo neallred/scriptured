@@ -1,5 +1,6 @@
 extern crate rust_stemmers;
 extern crate scripture_types;
+extern crate data_bundler;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
@@ -20,6 +21,7 @@ use scripture_types::{
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::io::prelude::*;
+// use data_bundler;
 use wasm_bindgen::prelude::*;
 
 extern crate web_sys;
@@ -48,10 +50,6 @@ static BYTES_DOCTRINE_AND_COVENANTS: &'static [u8] =
 static BYTES_PEARL_OF_GREAT_PRICE: &'static [u8] =
     include_bytes!("../../data-bundler/data/pearl-of-great-price.json.gz");
 
-static BYTES_WORDS_INDEX: &'static [u8] =
-    include_bytes!("../../data-bundler/data/words-index.json.gz");
-static BYTES_PATHS_INDEX: &'static [u8] =
-    include_bytes!("../../data-bundler/data/paths-index.json.gz");
 static BASE_URL: &'static str = "https://www.churchofjesuschrist.org/study/scriptures";
 
 // TODO: Figure out to do this one, at compile time.
@@ -62,9 +60,16 @@ lazy_static! {
     static ref PEARL_OF_GREAT_PRICE: PearlOfGreatPrice = parse_gzip(&BYTES_PEARL_OF_GREAT_PRICE);
     static ref DOCTRINE_AND_COVENANTS: DoctrineAndCovenants =
         parse_gzip(&BYTES_DOCTRINE_AND_COVENANTS);
-    static ref WORDS_INDEX: WordsIndex = parse_gzip(&BYTES_WORDS_INDEX);
-    static ref PATHS_INDEX: PathsIndex = parse_gzip(&BYTES_PATHS_INDEX);
-    static ref VERSE_PATHS_INDEX: VersePathsIndex = scripture_types::paths_to_verse_paths_index(&*PATHS_INDEX);
+
+    static ref INDICES: (WordsIndex, PathsIndex) = data_bundler::build_index(
+        &OLD_TESTAMENT,
+        &NEW_TESTAMENT,
+        &BOOK_OF_MORMON,
+        &DOCTRINE_AND_COVENANTS,
+        &PEARL_OF_GREAT_PRICE,
+    );
+
+    static ref VERSE_PATHS_INDEX: VersePathsIndex = scripture_types::paths_to_verse_paths_index(&(&*INDICES).1);
     static ref STEMMER: rust_stemmers::Stemmer = Stemmer::create(Algorithm::English);
     static ref RE_VERSE_CHARS: Regex = Regex::new(r"[^A-Za-z0-9\sæ\-]").unwrap();
 }
@@ -151,12 +156,20 @@ pub fn bootstrap_searcher() {
     // Force the minimal amount of work to initialize all data structures
     // so that user searches are speedy.
     let empty_preferences = preferences::make_empty_preferences();
+    let (words_index, paths_index) = &*INDICES;
+    let verse_paths_index = &*VERSE_PATHS_INDEX;
     full_match_search(
-        String::from("BOOSTRAP SCRIPTURED SEARCHER"),
+        // common words
+        String::from("god and the faith"),
         JsValue::from_serde(&empty_preferences).unwrap(),
     );
-    log!("words: {:?}", WORDS_INDEX.len());
-    log!("paths: {:?}", PATHS_INDEX.len());
+    log!(
+        "words: {:?}, paths: {:?}, verse_paths: {:?}",
+        words_index.len(),
+        paths_index.len(),
+        verse_paths_index.len()
+    );
+
 }
 
 fn make_splittable(text: &String) -> String {
@@ -343,6 +356,8 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
         return JsValue::from_serde(&no_results).unwrap();
     }
 
+    let (words_index, paths_index) = &*INDICES;
+
     let search_term = &make_splittable(&search_term_raw.to_lowercase());
 
     let search_stems: HashSet<_> = search_term
@@ -353,20 +368,19 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
         search_stems
             .iter()
             .fold(HashMap::new(), |mut matching_index, term| {
-                if let Some(v) = (&*WORDS_INDEX).get(term) {
+                if let Some(v) = (words_index).get(term) {
                     matching_index.insert(term.to_string(), v);
                 }
                 matching_index
             });
 
-    let p_index = &*PATHS_INDEX;
     let verse_paths_index = &*VERSE_PATHS_INDEX;
 
     let or_matches: HashSet<u32> = possible_matches
         .iter()
         .flat_map(|(_k, v)| v.keys())
         .map(|x| *x)
-        .filter(|x| check_collection_searchable(p_index.get(x).unwrap(), &search_preferences))
+        .filter(|x| check_collection_searchable(paths_index.get(x).unwrap(), &search_preferences))
         .collect();
 
     let and_matches: HashSet<u32> = possible_matches.iter().fold(or_matches, |acc, (_k, v)| {
@@ -379,7 +393,7 @@ pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue
         .iter()
         .flat_map(|(_k, v)| v.iter().filter(|x| and_matches.contains(x.0)))
         .map(|(scripture_id, highlights)| {
-            let verse_path = p_index.get(scripture_id).unwrap();
+            let verse_path = paths_index.get(scripture_id).unwrap();
             (verse_path, highlights)
         })
         .fold(
