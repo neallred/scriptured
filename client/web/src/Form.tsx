@@ -47,7 +47,11 @@ export default function Form({
           maxWidth: 'calc(100% - 47px)',
         }}
       />
-      <GearSvg onClick={showPreferences} style={{ marginLeft: '5px' }} />
+      <GearSvg
+        size={30}
+        onClick={showPreferences}
+        style={{ marginLeft: '5px', padding: '2px' }}
+      />
     </div>
     {preferencesOpen &&
       <Preferences

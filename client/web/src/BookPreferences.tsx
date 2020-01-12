@@ -56,7 +56,7 @@ export default function BookPreferences({
 }: BookPreferencesProps) {
   const [open, setOpen] = React.useState(false);
   const [currentMin, currentMax] = numberRange || [FIRST_DC_SECTION, LAST_DC_SECTION];
-  const allIncluded = includeSource && (
+  const allIncluded = (
     (bookOrder && bookOrder.every(x => booksIncluded[x])) ||
     (numberRange && numberRange[0] === min && numberRange[1] === max)
   );
@@ -81,29 +81,44 @@ export default function BookPreferences({
       <span style={{
         textDecoration: includeSource ? 'none' : 'line-through',
         color: includeSource ? '#000000' : '#888888',
-        width: '192px',
+        width: '222px',
       }}>{title} {selectedCount}</span>
-      <GearSvg onClick={() => setOpen(!open)} style={{
-        padding: '0 5px'
-        }}/>
+      <GearSvg size={30} onClick={() => setOpen(!open)} style={{
+        padding: '0 5px',
+        marginRight: '9px',
+      }}/>
       <button
         onClick={() => setPathValue(['includeSource', bookronym], !includeSource)}
         style={{
           color: '#000000',
           textDecoration: 'none',
+          fontSize: '18px',
+          width: '50px',
+          padding: '1px 2px'
         }}
-      >{includeSource ? 'Exclude' : 'Use'}</button>
+      >{includeSource ? 'Hide' : 'Use'}</button>
     </div>
     {open && <div>
-      <button onClick={() => setAll(bookronym, !allIncluded, min, max)}>{allIncluded ? `Exclude all` : `Search all`}</button>
+      <button onClick={() => setAll(bookronym, !allIncluded, min, max)}>{allIncluded ? `Exclude all` : `Use all`}</button>
       {bookOrder && booksIncluded
         ?  bookOrder.map(x => {
-          return <div key={x}>
-            <label>
+          return <div key={x} 
+            style={{
+              marginTop: '8px',
+            }}
+          >
+            <label style={{
+              display: 'flex',
+              alignItems: 'center',
+            }}>
               <input
                 type="checkbox"
                 checked={booksIncluded[x]}
                 onChange={e => setPathValue([bookronym, x], e.target.checked)}
+                style={{
+                  margin: '0',
+                  marginRight: '8px',
+                }}
               />
               {x}
             </label>
@@ -141,5 +156,3 @@ export default function BookPreferences({
     }
   </div>
 }
-
-

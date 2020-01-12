@@ -13,6 +13,12 @@ import { debounce } from './utils';
 interface AppProps {
 }
 
+enum Bootstrapped {
+  Y,
+  N,
+  Fail
+}
+
 function reduceString(acc: string[], [k, v]: [string, boolean]): string[] {
   if (v) {
     acc.push(k);
@@ -70,6 +76,7 @@ function App({}: AppProps) {
   const [preferences, setPreferences] = React.useState(loadPreferences());
   const [searchPending, setSearchPending] = React.useState(false);
   const [resultCount, setResultCount] = React.useState<null | number>(null);
+  const [bootstrapped, setBootstrapped] = React.useState<Bootstrapped>(Bootstrapped.N);
   const bootstrapTimeoutRef = React.useRef<number>(0);
 
   const debouncedFullTextSearch = React.useCallback(debounce((currentSearchTerm: string, preferences: SearchPreferences) => {
@@ -90,18 +97,28 @@ function App({}: AppProps) {
   React.useEffect(() => {
     const timeoutMethod = ((window as any).requestIdleCallback || window.setTimeout);
     bootstrapTimeoutRef.current = timeoutMethod(
-      () => wasm.bootstrap_searcher(),
+      () => {
+        try {
+          wasm.bootstrap_searcher()
+          setBootstrapped(Bootstrapped.Y);
+        } catch(e) {
+          alert(e);
+        }
+      },
       (window as any).requestIdleCallback ? { timeout: BOOTSTRAP_WAIT } : BOOTSTRAP_WAIT,
     )
   }, []);
 
   React.useEffect(() => {
+    if (bootstrapped !== Bootstrapped.Y) {
+      return;
+    }
     setSearchPending(true);
     debouncedFullTextSearch(
       searchTerm,
       preferences,
     );
-  }, [searchTerm, preferences]);
+  }, [bootstrapped, searchTerm, preferences]);
 
   const boundSetSearchTerm = React.useCallback(
     newTerm => {
@@ -111,19 +128,29 @@ function App({}: AppProps) {
     []
   );
 
-  return <div style={{
+  switch (bootstrapped) {
+    case Bootstrapped.N:
+      return <div className="waiting">
+        <span>Building search indices...</span>
+      </div>;
+    case Bootstrapped.Y:
+      return <div style={{
       padding: '8px',
-    }}>
-    <Form
-      searchTerm={searchTerm}
-      setSearchTerm={boundSetSearchTerm}
-      preferences={preferences}
-      setPreferences={setPreferences}
-      resultCount={resultCount}
-    />
-    <ul id="scriptured-results" className="results-section" />
-  </div>
-
+        }}>
+        <Form
+          searchTerm={searchTerm}
+          setSearchTerm={boundSetSearchTerm}
+          preferences={preferences}
+          setPreferences={setPreferences}
+          resultCount={resultCount}
+        />
+        <ul id="scriptured-results" className="results-section" />
+      </div>
+    case Bootstrapped.Fail:
+      return <div className="fail">
+        Failed to bootstrap searcher.
+      </div>
+  }
 }
 
 ReactDOM.render(<App />, document.getElementById('scriptured-root'));

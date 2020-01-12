@@ -413,12 +413,11 @@ export default function Preferences({
         ...preferences.toSearch,
         [bookronym]: (
           bookronym === 'dc'
-          ? { range: [min, max] }
-          : Object.keys(preferences.toSearch[bookronym]).reduce((acc, curr) => { acc[curr] = allValue; return acc; }, retVal)
+            ? { range: [min, (allValue ? max : min)] }
+            : Object.keys(preferences.toSearch[bookronym]).reduce((acc, curr) => { acc[curr] = allValue; return acc; }, retVal)
         ),
         includeSource: {
           ...preferences.toSearch.includeSource,
-          [bookronym]: allValue,
         },
       },
     });
@@ -442,7 +441,8 @@ export default function Preferences({
         backgroundColor: 'white',
         position: 'relative',
         margin: '10px auto 0',
-        padding: '20px',
+        padding: '10px',
+        fontSize: '18px',
       }}
     >
       <div>
@@ -501,6 +501,17 @@ export default function Preferences({
         setPathValue={setPathValue}
         setAll={setAll}
       />
+      <button 
+        style={{
+          position: 'absolute',
+          top: '-9px',
+          right: '-9px',
+          padding: '4px 7px',
+          borderRadius: '100%',
+          fontWeight: '800',
+        }}
+        onClick={hidePreferences}
+      >&#10799;</button>
     </div>
   </div>
 }

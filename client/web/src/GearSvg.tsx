@@ -1,19 +1,40 @@
 import * as React from 'react';
 
+const ACTION_KEYS: {[key: string]: true} = {
+  'Enter': true,
+  'Space': true,
+  ' ': true,
+  '': true,
+}
+
 interface GearSvgProps {
   size?: number,
   onClick: () => void,
   style?: {[key: string]: number | string},
+  tabIndex?: number,
 }
 export default function GearSvg({
   size = 25,
   onClick,
   style,
+  tabIndex = 0
 }: GearSvgProps) {
   const sizePx = `${size}px`;
+  const sizeShadowPx = `${size / 12}px`;
   return (<svg
     onClick={onClick}
-    style={style}
+    onKeyDown={e => {
+        if (ACTION_KEYS[e.key]) {
+          onClick();
+        }
+      }
+    }
+    style={{
+      boxShadow: `${sizeShadowPx} ${sizeShadowPx} ${sizeShadowPx} rgba(0,0,0,0.7)`,
+      borderRadius: '100%',
+      ...style
+    }}
+    tabIndex={tabIndex}
     xmlns="http://www.w3.org/2000/svg"
     version="1.1"
     x="0px"
