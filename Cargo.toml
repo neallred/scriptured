@@ -5,9 +5,9 @@ members = [
   "client",
   "data-bundler",
   "scripture-types",
+  "indices",
 ]
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
 opt-level = "s"
-

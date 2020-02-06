@@ -1,20 +1,23 @@
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
+extern crate phf;
+use primitive_types::U256;
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-// use std::collections::HashSet;
+use fnv::FnvHashMap;
 
-pub type WordsIndex = HashMap<String, HashMap<u32, Vec<(usize, usize)>>>;
-pub type PathsIndex = HashMap<u32, VersePath>;
-pub type VersePathsIndex = HashMap<VersePath, u32>;
+pub type WordsIndex = FnvHashMap<String, FnvHashMap<u16, Vec<(usize, usize)>>>;
+pub type PathsIndex = FnvHashMap<u16, VersePath>;
+pub type VersePathsIndex = FnvHashMap<VersePath, u16>;
+pub type PhfPathsIndex = phf::Map<u16, VersePath>;
+pub type PhfWordsIndex = phf::Map<&'static str, phf::Map<u16, (U256, u128)>>;
 
-pub fn paths_to_verse_paths_index(paths: &PathsIndex) -> VersePathsIndex {
+pub fn paths_to_verse_paths_index(paths: &PhfPathsIndex) -> VersePathsIndex {
     paths
-        .iter()
+        .entries()
         .fold(
-            HashMap::new(),
+            FnvHashMap::default(),
             |mut acc, (k, v)| {
                 acc.insert(v.clone(), *k);
                 acc
@@ -24,11 +27,11 @@ pub fn paths_to_verse_paths_index(paths: &PathsIndex) -> VersePathsIndex {
 
 #[derive(Serialize, Deserialize, Debug, Hash, Eq, PartialEq, Clone)]
 pub enum VersePath {
-    PathBoM(usize, usize, usize),
-    PathOT(usize, usize, usize),
-    PathNT(usize, usize, usize),
-    PathPOGP(usize, usize, usize),
-    PathDC(usize, usize), // section verse
+    PathBoM(u8, u8, u16),
+    PathOT(u8, u8, u16),
+    PathNT(u8, u8, u16),
+    PathPOGP(u8, u8, u16),
+    PathDC(u8, u16), // section verse
 }
 
 #[derive(Serialize, Deserialize)]
@@ -38,12 +41,12 @@ pub struct Verse {
     pub reference: String,
     pub subheading: Option<String>,
     pub text: String,
-    pub verse: u64,
+    pub verse: u16,
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct Chapter {
-    pub chapter: u64,
+    pub chapter: u8,
     pub heading: Option<String>,
     pub note: Option<String>,
     pub reference: String,
@@ -75,7 +78,7 @@ pub struct Book {
 // structs
 #[derive(Serialize, Deserialize)]
 pub struct Section {
-    pub section: u64,
+    pub section: u8,
     pub reference: String,
     pub verses: Vec<Verse>,
     pub signature: Option<String>,
@@ -90,7 +93,7 @@ pub struct BookOfMormon {
     pub testimonies: Vec<Testimony>,
     pub title: String,
     pub title_page: TitlePage,
-    pub version: u64,
+    pub version: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -116,7 +119,7 @@ pub struct DoctrineAndCovenants {
     pub subsubtitle: String,
     pub subtitle: String,
     pub title: String,
-    pub version: u64,
+    pub version: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -133,7 +136,7 @@ pub struct NewTestament {
     pub lds_slug: String,
     pub title: String,
     pub title_page: NewTestamentTitlePage,
-    pub version: u64,
+    pub version: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -143,7 +146,7 @@ pub struct OldTestament {
     pub lds_slug: String,
     pub the_end: String,
     pub title: String,
-    pub version: u64,
+    pub version: u8,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -153,5 +156,5 @@ pub struct PearlOfGreatPrice {
     pub lds_slug: String,
     pub subtitle: String,
     pub title: String,
-    pub version: u64,
+    pub version: u8,
 }

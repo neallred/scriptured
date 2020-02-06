@@ -1,13 +1,10 @@
 extern crate scripture_types;
+extern crate phf_codegen;
+extern crate phf;
 use std::fs::File;
-use std::io::BufReader;
-use std::io::BufWriter;
-use std::io::Read;
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 
-use flate2::write::GzEncoder;
-use flate2::Compression;
-use std::io::prelude::*;
 use data_bundler;
 
 #[cfg(windows)]
@@ -30,6 +27,16 @@ fn ensure_data_source(test_path: &std::path::PathBuf) {
             .arg(format!("{} i", NPM))
             .status()
             .expect("Unable to install data source");
+    }
+}
+
+fn repr_verse_path(verse_path: &scripture_types::VersePath) -> String {
+    match verse_path {
+        scripture_types::VersePath::PathBoM(a, b, c) => format!("VersePath::PathBoM({},{},{})", a, b, c),
+        scripture_types::VersePath::PathOT(a, b, c) => format!("VersePath::PathOT({},{},{})", a, b, c),
+        scripture_types::VersePath::PathNT(a, b, c) => format!("VersePath::PathNT({},{},{})", a, b, c),
+        scripture_types::VersePath::PathPOGP(a, b, c) => format!("VersePath::PathPOGP({},{},{})", a, b, c),
+        scripture_types::VersePath::PathDC(a, b) => format!("VersePath::PathDC({},{})", a, b),
     }
 }
 
@@ -58,14 +65,11 @@ pub fn copy_minified<T: serde::de::DeserializeOwned + serde::ser::Serialize>(
     let parsed: T = serde_json::from_str(&unparsed).unwrap();
 
     let mut dest = dest_folder.clone();
-    dest.push(format!("{}.{}", file_name, "gz"));
+    dest.push(format!("{}.bin", file_name));
 
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
-    serde_json::to_writer(&mut encoder, &parsed).unwrap();
-
-    let mut f_gzipped = BufWriter::new(File::create(dest).unwrap());
-    let gzipped = encoder.finish().unwrap();
-    f_gzipped.write(&gzipped).unwrap();
+    let mut f = BufWriter::new(File::create(dest).unwrap());
+    f.write(&bincode::serialize(&parsed).unwrap()).unwrap();
+    f.flush().unwrap();
 
     parsed
 }
@@ -76,16 +80,13 @@ pub fn write_minified<T: serde::ser::Serialize>(
     file_name: &str,
 ) -> () {
     let mut dest = dest_folder.clone();
-    dest.push(format!("{}.{}", file_name, "gz"));
+    dest.push(format!("{}.bin", file_name));
 
     println!("writing {}", file_name);
 
-    let mut encoder = GzEncoder::new(Vec::new(), Compression::best());
-    serde_json::to_writer(&mut encoder, data).unwrap();
-
-    let mut f_gzipped = BufWriter::new(File::create(dest).unwrap());
-    let gzipped = encoder.finish().unwrap();
-    f_gzipped.write(&gzipped).unwrap();
+    let mut f = BufWriter::new(File::create(dest).unwrap());
+    f.write(&bincode::serialize(&data).unwrap()).unwrap();
+    f.flush().unwrap();
 }
 
 fn main() {
@@ -146,4 +147,61 @@ fn main() {
     println!("total paths: {}", paths_index.len());
     write_minified(&paths_index, &dest_folder, "paths-index.json");
     write_minified(&words_index, &dest_folder, "words-index.json");
+
+    let mut paths_index_codegen_file = dest_folder.clone();
+    paths_index_codegen_file.push("codegen-paths-index.rs");
+
+    println!("generating paths index codegen file...");
+
+    let mut paths_index_phf: phf_codegen::Map<u16> = phf_codegen::Map::new();
+    for (k, v) in &paths_index {
+        paths_index_phf.entry(*k, &repr_verse_path(v));
+    }
+
+    println!("writing paths index codegen file...");
+
+    let mut f_codegen = BufWriter::new(File::create(paths_index_codegen_file).unwrap());
+
+    writeln!(
+        &mut f_codegen,
+        "pub static PHF_PATHS_INDEX: phf::Map<u16, scripture_types::VersePath> = \n{};\n",
+        paths_index_phf.build(),
+    ).unwrap();
+
+
+
+
+    let mut words_index_codegen_file = dest_folder.clone();
+    words_index_codegen_file.push("codegen-words-index.rs");
+
+    println!("generating words index codegen file...");
+
+    let mut words_index_phf: phf_codegen::Map<&str> = phf_codegen::Map::new();
+    for (word, usage_map) in &words_index {
+        let mut usages_phf: phf_codegen::Map<u16> = phf_codegen::Map::new();
+        for (scripture_id, highlights_vec) in usage_map {
+            let (i_s, l_s): (Vec<_>, Vec<_>) = highlights_vec.iter().cloned().map(|(x,y)| (x as u16, y as u8)).unzip();
+            usages_phf.entry(
+                *scripture_id,
+                &format!(
+                    "(U256 {{ 0: {:?} }},{})",
+                    data_bundler::pack_indices_arr(&i_s),
+                    data_bundler::pack_lengths(&l_s),
+                ),
+            );
+        }
+        let built_usages_phf = usages_phf.build();
+        words_index_phf.entry(word, &built_usages_phf.to_string());
+    }
+
+
+    println!("writing words index codegen file...");
+
+    let mut f_codegen_words_index = BufWriter::new(File::create(words_index_codegen_file).unwrap());
+
+    writeln!(
+        &mut f_codegen_words_index,
+        "pub static PHF_WORDS_INDEX: phf::Map<&str, phf::Map<u16, (U256,u128)>> = \n{};\n",
+        words_index_phf.build(),
+    ).unwrap();
 }

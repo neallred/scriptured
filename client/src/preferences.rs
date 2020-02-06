@@ -33,7 +33,7 @@ pub struct IncludedBooks {
     pub ot: Vec<String>,
     pub nt: Vec<String>,
     pub bom: Vec<String>,
-    pub dc: (u64, u64),
+    pub dc: (u8, u8),
     pub pogp: Vec<String>,
 }
 
@@ -50,11 +50,11 @@ pub fn make_empty_preferences() -> SearchPreferences {
             pogp: true,
         },
         included_books: IncludedBooks {
-            ot: vec![],
-            nt: vec![],
-            bom: vec![],
-            dc: (1, 1),
-            pogp: vec![],
+            ot: vec![String::from("Genesis")],
+            nt: vec![String::from("Matthew")],
+            bom: vec![String::from("1 Nephi")],
+            dc: (1, 20),
+            pogp: vec![String::from("Abraham")],
         },
     }
 }
