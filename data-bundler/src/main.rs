@@ -184,9 +184,11 @@ fn main() {
             usages_phf.entry(
                 *scripture_id,
                 &format!(
-                    "(U256 {{ 0: {:?} }},{})",
-                    data_bundler::pack_indices_arr(&i_s),
-                    data_bundler::pack_lengths(&l_s),
+                    "({},{:?})",
+                    // data_bundler::pack_indices_arr(&i_s),
+                    scripture_types::pack_is_str(&i_s),
+                    // data_bundler::pack_lengths(&l_s),
+                    scripture_types::pack_ls(&l_s),
                 ),
             );
         }
@@ -201,7 +203,7 @@ fn main() {
 
     writeln!(
         &mut f_codegen_words_index,
-        "pub static PHF_WORDS_INDEX: phf::Map<&str, phf::Map<u16, (U256,u128)>> = \n{};\n",
+        "pub static PHF_WORDS_INDEX: phf::Map<&str, phf::Map<u16, (HighlightIs,HighlightLs)>> = \n{};\n",
         words_index_phf.build(),
     ).unwrap();
 }

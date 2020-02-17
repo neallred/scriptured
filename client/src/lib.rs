@@ -3,7 +3,6 @@ extern crate rust_stemmers;
 extern crate serde;
 extern crate serde_derive;
 extern crate serde_json;
-use primitive_types::U256;
 use regex::Regex;
 use rust_stemmers::{Algorithm, Stemmer};
 
@@ -18,8 +17,10 @@ extern crate lazy_static;
 
 use scripture_types::{
     BookOfMormon, DoctrineAndCovenants, NewTestament, OldTestament, VersePathsIndex, PearlOfGreatPrice,
-    VersePath
+    VersePath, HighlightIs, HighlightLs
 };
+use scripture_types::HighlightIs::*;
+use scripture_types::HighlightLs::*;
 use fnv::FnvHashMap;
 use fnv::FnvHashSet;
 use wasm_bindgen::prelude::*;
@@ -106,8 +107,8 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
     format!("{}/{}", BASE_URL, url_slug)
 }
 
-fn extract_highlights((start_indices, lengths): &(U256, u128)) -> Vec<(u16, u8)> {
-    data_bundler::unpack_indices(*start_indices).iter().cloned().zip(data_bundler::unpack_lengths(*lengths)).collect()
+fn extract_highlights((start_indices, lengths): &(HighlightIs, HighlightLs)) -> Vec<(u16, u8)> {
+    scripture_types::unpack_highlight_is(start_indices).iter().cloned().zip(scripture_types::unpack_highlight_ls(lengths)).collect()
 }
 
 fn highlight_matches(text: &String, highlights: &Vec<(u16, u8)>) -> String {
@@ -232,7 +233,7 @@ fn check_collection_searchable(verse_path: &VersePath, preferences: &preferences
     return_value
 }
 
-pub type WordsIndexBorrowing = FnvHashMap<String, &'static phf::Map<u16, (U256,u128)>>;
+pub type WordsIndexBorrowing = FnvHashMap<String, &'static phf::Map<u16, (HighlightIs,HighlightLs)>>;
 #[wasm_bindgen]
 pub fn full_match_search(search_term_raw: String, search_preferences_js: JsValue) -> JsValue {
     let t_0 = web_sys::window().unwrap().performance().unwrap().now();
