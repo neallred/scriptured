@@ -8,12 +8,15 @@ use fnv::FnvHashMap;
 use primitive_types::U256;
 
 type VerseId = u16;
+type BigHighlightId = u16;
 
 pub type WordsIndex = FnvHashMap<String, FnvHashMap<VerseId, Vec<(usize, usize)>>>;
 pub type PathsIndex = FnvHashMap<VerseId, VersePath>;
 pub type VersePathsIndex = FnvHashMap<VersePath, VerseId>;
-pub type PhfPathsIndex = phf::Map<u16, VersePath>;
+pub type PhfPathsIndex = phf::Map<VerseId, VersePath>;
 pub type PhfWordsIndex = phf::Map<&'static str, phf::Map<VerseId, (HighlightIs, HighlightLs)>>;
+pub type BigHighlightIs = phf::Map<BigHighlightId, U256>;
+pub type BigHighlightLs = phf::Map<BigHighlightId, u128>;
 
 pub fn paths_to_verse_paths_index(paths: &PhfPathsIndex) -> VersePathsIndex {
     paths
@@ -167,26 +170,26 @@ pub struct PearlOfGreatPrice {
 pub enum HighlightIs {
     Is1(u16),
     Is2(u32),
-    Is3(u64),
-    Is4(u64),
-    Is5(u64),
-    Is6(u128),
-    Is7(u128),
-    Is8(u128),
-    Is9(u128),
-    Is10(u128),
-    Is11(u128),
-    Is12(U256),
-    Is13(U256),
-    Is14(U256),
-    Is15(U256),
-    Is16(U256),
-    Is17(U256),
-    Is18(U256),
-    Is19(U256),
-    Is20(U256),
-    Is21(U256),
-    Is22(U256),
+    Is3(BigHighlightId),
+    Is4(BigHighlightId),
+    Is5(BigHighlightId),
+    Is6(BigHighlightId),
+    Is7(BigHighlightId),
+    Is8(BigHighlightId),
+    Is9(BigHighlightId),
+    Is10(BigHighlightId),
+    Is11(BigHighlightId),
+    Is12(BigHighlightId),
+    Is13(BigHighlightId),
+    Is14(BigHighlightId),
+    Is15(BigHighlightId),
+    Is16(BigHighlightId),
+    Is17(BigHighlightId),
+    Is18(BigHighlightId),
+    Is19(BigHighlightId),
+    Is20(BigHighlightId),
+    Is21(BigHighlightId),
+    Is22(BigHighlightId),
 }
 
 // optimal storage tradeoff is to store Ls1-3 as u16,
@@ -196,25 +199,25 @@ pub enum HighlightLs {
     Ls1(u8),
     Ls2(u16),
     Ls3(u16),
-    Ls4(u32),
-    Ls5(u32),
-    Ls6(u32),
-    Ls7(u64),
-    Ls8(u64),
-    Ls9(u64),
-    Ls10(u64),
-    Ls11(u64),
-    Ls12(u64),
-    Ls13(u128),
-    Ls14(u128),
-    Ls15(u128),
-    Ls16(u128),
-    Ls17(u128),
-    Ls18(u128),
-    Ls19(u128),
-    Ls20(u128),
-    Ls21(u128),
-    Ls22(u128),
+    Ls4(BigHighlightId),
+    Ls5(BigHighlightId),
+    Ls6(BigHighlightId),
+    Ls7(BigHighlightId),
+    Ls8(BigHighlightId),
+    Ls9(BigHighlightId),
+    Ls10(BigHighlightId),
+    Ls11(BigHighlightId),
+    Ls12(BigHighlightId),
+    Ls13(BigHighlightId),
+    Ls14(BigHighlightId),
+    Ls15(BigHighlightId),
+    Ls16(BigHighlightId),
+    Ls17(BigHighlightId),
+    Ls18(BigHighlightId),
+    Ls19(BigHighlightId),
+    Ls20(BigHighlightId),
+    Ls21(BigHighlightId),
+    Ls22(BigHighlightId),
 }
 
 type ISize = u16;
@@ -360,30 +363,65 @@ pub fn pack_is_str(is: &Vec<ISize>) -> String {
     }
 }
 
-pub fn unpack_highlight_is(highlight_is: &HighlightIs) -> Vec<ISize> {
+// need a
+//   String for first index storage
+//   String for big storage
+//   num id to link the two.
+//   should ALWAYS be a U256 in big storage mode.
+//   first index is Is##({:?} 
+//   if mutate num id OUTSIDE this helper, then it keeps things simpler.
+pub fn pack_is_str_big(is: &Vec<ISize>, big_id: u16) -> (String, String) {
+    match is.len() {
+        0 => panic!("Is vec should never be empty"),
+        1 => panic!("Should not pack Is1 as big"),
+        2 => panic!("Should not pack Is2 as big"),
+        3 => (format!("Is3({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        4 => (format!("Is4({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        5 => (format!("Is5({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        6 => (format!("Is6({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        7 => (format!("Is7({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        8 => (format!("Is8({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        9 => (format!("Is9({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        10 => (format!("Is10({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        12 => (format!("Is12({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        13 => (format!("Is13({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        14 => (format!("Is14({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        15 => (format!("Is15({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        16 => (format!("Is16({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        17 => (format!("Is17({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        18 => (format!("Is18({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        19 => (format!("Is19({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        20 => (format!("Is20({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        21 => (format!("Is21({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        22 => (format!("Is22({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(is))),
+        _ => (format!("Is22({})", big_id), format!("U256 {{ 0: {:?} }}", pack_is_arr(&is.iter().take(22).map(|x| *x).collect()))),
+    }
+}
+
+pub fn unpack_highlight_is(highlight_is: &HighlightIs, bigs: &'static BigHighlightIs) -> Vec<ISize> {
     match highlight_is {
         HighlightIs::Is1(x) => unpack_highlight_is_num(*x),
         HighlightIs::Is2(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is3(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is4(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is5(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is6(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is7(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is8(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is9(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is10(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is11(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is12(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is13(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is14(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is15(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is16(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is17(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is18(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is19(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is20(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is21(x) => unpack_highlight_is_num(*x),
-        HighlightIs::Is22(x) => unpack_highlight_is_num(*x),
+        HighlightIs::Is3(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is4(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is5(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is6(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is7(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is8(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is9(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is10(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is11(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is12(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is13(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is14(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is15(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is16(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is17(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is18(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is19(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is20(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is21(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
+        HighlightIs::Is22(x) => unpack_highlight_is_num(*bigs.get(x).unwrap()),
     }
 }
 
@@ -469,57 +507,86 @@ pub fn pack_ls(ls: &Vec<LSize>) -> HighlightLs {
     }
 }
 
-pub fn unpack_highlight_ls(highlight_ls: &HighlightLs) -> Vec<LSize> {
+pub fn pack_ls_big(ls: &Vec<LSize>, big_id: u16) -> (HighlightLs, u16) {
+    match ls.len() {
+        0 => panic!("Ls highlights should never be empty"),
+        1 => panic!("Should not pack Ls1 as big"),
+        2 => panic!("Should not pack Ls2 as big"),
+        3 => panic!("Should not pack Ls3 as big"),
+        4 => (HighlightLs::Ls4(big_id), pack_ls_helper(ls)),
+        5 => (HighlightLs::Ls5(big_id), pack_ls_helper(ls)),
+        6 => (HighlightLs::Ls6(big_id), pack_ls_helper(ls)),
+        7 => (HighlightLs::Ls7(big_id), pack_ls_helper(ls)),
+        8 => (HighlightLs::Ls8(big_id), pack_ls_helper(ls)),
+        9 => (HighlightLs::Ls9(big_id), pack_ls_helper(ls)),
+        10 => (HighlightLs::Ls10(big_id), pack_ls_helper(ls)),
+        11 => (HighlightLs::Ls11(big_id), pack_ls_helper(ls)),
+        12 => (HighlightLs::Ls12(big_id), pack_ls_helper(ls)),
+        13 => (HighlightLs::Ls13(big_id), pack_ls_helper(ls)),
+        14 => (HighlightLs::Ls14(big_id), pack_ls_helper(ls)),
+        15 => (HighlightLs::Ls15(big_id), pack_ls_helper(ls)),
+        16 => (HighlightLs::Ls16(big_id), pack_ls_helper(ls)),
+        17 => (HighlightLs::Ls17(big_id), pack_ls_helper(ls)),
+        18 => (HighlightLs::Ls18(big_id), pack_ls_helper(ls)),
+        19 => (HighlightLs::Ls19(big_id), pack_ls_helper(ls)),
+        20 => (HighlightLs::Ls20(big_id), pack_ls_helper(ls)),
+        21 => (HighlightLs::Ls21(big_id), pack_ls_helper(ls)),
+        22 => (HighlightLs::Ls22(big_id), pack_ls_helper(ls)),
+        _ => (HighlightLs::Ls22(big_id), pack_ls_helper(&ls.iter().take(22).map(|x| *x).collect())),
+    }
+}
+
+pub fn unpack_highlight_ls(highlight_ls: &HighlightLs, bigs: &'static BigHighlightLs) -> Vec<LSize> {
     match highlight_ls {
         HighlightLs::Ls1(x) => unpack_highlight_ls_num(*x),
         HighlightLs::Ls2(x) => unpack_highlight_ls_num(*x),
         HighlightLs::Ls3(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls4(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls5(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls6(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls7(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls8(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls9(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls10(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls11(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls12(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls13(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls14(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls15(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls16(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls17(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls18(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls19(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls20(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls21(x) => unpack_highlight_ls_num(*x),
-        HighlightLs::Ls22(x) => unpack_highlight_ls_num(*x),
+        HighlightLs::Ls4(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls5(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls6(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls7(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls8(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls9(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls10(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls11(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls12(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls13(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls14(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls15(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls16(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls17(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls18(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls19(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls20(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls21(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
+        HighlightLs::Ls22(x) => unpack_highlight_ls_num(*bigs.get(x).unwrap()),
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn test_round_trip(lengths: Vec<u8>) {
-        assert_eq!(lengths, unpack_highlight_ls(pack_ls(&lengths)));
-    }
-
-    fn test_round_trip_indices(indices: Vec<u16>) {
-        assert_eq!(indices, unpack_highlight_is(pack_is(&indices)));
-    }
-
-    #[test]
-    fn packs_and_unpacks_highlight_lengths_less_than_32_up_to_22_elements() {
-        test_round_trip(vec![]);
-        test_round_trip((1..22).collect());
-        test_round_trip((10..31).collect());
-    }
-
-    #[test]
-    fn packs_and_unpacks_highlight_indices_less_than_2048_up_to_22_elements() {
-        test_round_trip_indices(vec![]);
-        test_round_trip_indices(vec![1234,2046,0,1,2,3,4,5,88]);
-        test_round_trip_indices((0..21).collect());
-        test_round_trip_indices((2025..2046).collect());
-    }
-}
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+// 
+//     fn test_round_trip(lengths: Vec<u8>) {
+//         assert_eq!(lengths, unpack_highlight_ls(pack_ls(&lengths)));
+//     }
+// 
+//     fn test_round_trip_indices(indices: Vec<u16>) {
+//         assert_eq!(indices, unpack_highlight_is(pack_is(&indices)));
+//     }
+// 
+//     #[test]
+//     fn packs_and_unpacks_highlight_lengths_less_than_32_up_to_22_elements() {
+//         test_round_trip(vec![]);
+//         test_round_trip((1..22).collect());
+//         test_round_trip((10..31).collect());
+//     }
+// 
+//     #[test]
+//     fn packs_and_unpacks_highlight_indices_less_than_2048_up_to_22_elements() {
+//         test_round_trip_indices(vec![]);
+//         test_round_trip_indices(vec![1234,2046,0,1,2,3,4,5,88]);
+//         test_round_trip_indices((0..21).collect());
+//         test_round_trip_indices((2025..2046).collect());
+//     }
+// }

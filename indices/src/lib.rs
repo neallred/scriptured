@@ -6,3 +6,5 @@ use scripture_types::HighlightLs::*;
 
 include!("../../data-bundler/data/codegen-paths-index.rs");
 include!("../../data-bundler/data/codegen-words-index.rs");
+include!("../../data-bundler/data/codegen-words-index-big-is.rs");
+include!("../../data-bundler/data/codegen-words-index-big-ls.rs");

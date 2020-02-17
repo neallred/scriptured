@@ -108,7 +108,9 @@ fn make_link(verse_path: &scripture_types::VersePath) -> String {
 }
 
 fn extract_highlights((start_indices, lengths): &(HighlightIs, HighlightLs)) -> Vec<(u16, u8)> {
-    scripture_types::unpack_highlight_is(start_indices).iter().cloned().zip(scripture_types::unpack_highlight_ls(lengths)).collect()
+    let big_is = &indices::PHF_WORDS_INDEX_BIG_IS;
+    let big_ls = &indices::PHF_WORDS_INDEX_BIG_LS;
+    scripture_types::unpack_highlight_is(start_indices, big_is).iter().cloned().zip(scripture_types::unpack_highlight_ls(lengths, big_ls)).collect()
 }
 
 fn highlight_matches(text: &String, highlights: &Vec<(u16, u8)>) -> String {

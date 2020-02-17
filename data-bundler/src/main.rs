@@ -174,23 +174,61 @@ fn main() {
     let mut words_index_codegen_file = dest_folder.clone();
     words_index_codegen_file.push("codegen-words-index.rs");
 
+    let mut words_index_big_is_codegen_file = dest_folder.clone();
+    words_index_big_is_codegen_file.push("codegen-words-index-big-is.rs");
+
+    let mut words_index_big_ls_codegen_file = dest_folder.clone();
+    words_index_big_ls_codegen_file.push("codegen-words-index-big-ls.rs");
+
     println!("generating words index codegen file...");
+
+    let mut big_id: u16 = 0;
+    let mut big_ls_index_phf: phf_codegen::Map<u16> = phf_codegen::Map::new();
+    let mut big_is_index_phf: phf_codegen::Map<u16> = phf_codegen::Map::new();
 
     let mut words_index_phf: phf_codegen::Map<&str> = phf_codegen::Map::new();
     for (word, usage_map) in &words_index {
         let mut usages_phf: phf_codegen::Map<u16> = phf_codegen::Map::new();
         for (scripture_id, highlights_vec) in usage_map {
             let (i_s, l_s): (Vec<_>, Vec<_>) = highlights_vec.iter().cloned().map(|(x,y)| (x as u16, y as u8)).unzip();
-            usages_phf.entry(
-                *scripture_id,
-                &format!(
-                    "({},{:?})",
-                    // data_bundler::pack_indices_arr(&i_s),
-                    scripture_types::pack_is_str(&i_s),
-                    // data_bundler::pack_lengths(&l_s),
-                    scripture_types::pack_ls(&l_s),
-                ),
-            );
+            let num_highlights = i_s.len();
+            if num_highlights > 3 {
+                big_id += 1;
+                let (index_storage_is, big_storage_is) = scripture_types::pack_is_str_big(&i_s, big_id);
+                let (index_storage_ls, big_storage_ls) = scripture_types::pack_ls_big(&l_s, big_id);
+                usages_phf.entry(
+                    *scripture_id,
+                    &format!(
+                        "({},{:?})",
+                        index_storage_is,
+                        index_storage_ls,
+                    ),
+                );
+                big_is_index_phf.entry(big_id, &big_storage_is);
+                big_ls_index_phf.entry(big_id, &format!("{}", big_storage_ls));
+            } else if num_highlights == 3 {
+                big_id += 1;
+                let (index_storage_is, big_storage_is) = scripture_types::pack_is_str_big(&i_s, big_id);
+                usages_phf.entry(
+                    *scripture_id,
+                    &format!(
+                        "({},{:?})",
+                        index_storage_is,
+                        scripture_types::pack_ls(&l_s),
+                    ),
+                );
+                big_is_index_phf.entry(big_id, &big_storage_is);
+            } else {
+                // 1 or 2,
+                usages_phf.entry(
+                    *scripture_id,
+                    &format!(
+                        "({},{:?})",
+                        scripture_types::pack_is_str(&i_s),
+                        scripture_types::pack_ls(&l_s),
+                    ),
+                );
+            }
         }
         let built_usages_phf = usages_phf.build();
         words_index_phf.entry(word, &built_usages_phf.to_string());
@@ -200,10 +238,24 @@ fn main() {
     println!("writing words index codegen file...");
 
     let mut f_codegen_words_index = BufWriter::new(File::create(words_index_codegen_file).unwrap());
+    let mut f_codegen_words_index_big_is = BufWriter::new(File::create(words_index_big_is_codegen_file).unwrap());
+    let mut f_codegen_words_index_big_ls = BufWriter::new(File::create(words_index_big_ls_codegen_file).unwrap());
 
     writeln!(
         &mut f_codegen_words_index,
         "pub static PHF_WORDS_INDEX: phf::Map<&str, phf::Map<u16, (HighlightIs,HighlightLs)>> = \n{};\n",
         words_index_phf.build(),
+    ).unwrap();
+
+    writeln!(
+        &mut f_codegen_words_index_big_is,
+        "pub static PHF_WORDS_INDEX_BIG_IS: phf::Map<u16, U256> = \n{};\n",
+        big_is_index_phf.build(),
+    ).unwrap();
+
+    writeln!(
+        &mut f_codegen_words_index_big_ls,
+        "pub static PHF_WORDS_INDEX_BIG_LS: phf::Map<u16, u128> = \n{};\n",
+        big_ls_index_phf.build(),
     ).unwrap();
 }
