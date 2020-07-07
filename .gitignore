@@ -7,6 +7,7 @@ server/build/
 !server/build/.gitkeep
 
 data-bundler/data/*
+data-bundler/target
 !data-bundler/data/.gitkeep
 
 node_modules
